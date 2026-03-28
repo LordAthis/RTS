@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using RTS.Views; // Ez fontos a nézetek betöltéséhez
+using RTS.Views;
 
 namespace RTS
 {
@@ -12,19 +12,21 @@ namespace RTS
     {
         private bool isDark = true;
         private Button? activeOSButton = null;
+        
+        // Globálisan elérhető állapot az OS szűréshez
+        public string SelectedOS { get; private set; } = "10"; // Alapértelmezett
 
         public MainWindow()
         {
             InitializeComponent();
+            // 1. Detektálás indításkor
             DetectCurrentOS();
-            LogToConsole("RTS Keretrendszer inicializálva. Készen áll a használatra.");
+            LogToConsole("NEXUS RTS Rendszer betöltve. Keretrendszer készen áll.");
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
-            base.OnMouseLeftButtonDown(e);
-            if (e.ChangedButton == MouseButton.Left)
-                this.DragMove();
+            if (e.ChangedButton == MouseButton.Left) this.DragMove();
         }
 
         private void DetectCurrentOS()
@@ -34,26 +36,35 @@ namespace RTS
             int minor = os.Version.Minor;
             int build = os.Version.Build;
 
+            // Pontos azonosítás és a gomb kigyújtása
             if (major == 5) HighlightOSButton(BtnXP); 
             else if (major == 6 && minor == 1) HighlightOSButton(BtnWin7);
             else if (major == 6 && (minor == 2 || minor == 3)) HighlightOSButton(BtnWin8);
             else if (major == 10 && build < 22000) HighlightOSButton(BtnWin10);
             else if (major == 10 && build >= 22000) HighlightOSButton(BtnWin11);
             
-            LogToConsole($"Rendszerazonosítás: Windows {major}.{minor} (Build: {build})");
+            LogToConsole($"Észlelt OS: Windows {SelectedOS} (Build: {build})");
         }
 
-        private void HighlightOSButton(Button target)
+        public void HighlightOSButton(Button target)
         {
             if (target == null) return;
+            
+            // Régi gomb leoltása
             if (activeOSButton != null) 
             {
                 activeOSButton.Background = Brushes.Transparent;
                 activeOSButton.Foreground = (SolidColorBrush)Application.Current.Resources["TextBrush"];
             }
+
+            // Új gomb kigyújtása
             target.Background = (SolidColorBrush)Application.Current.Resources["AccentNeon"];
             target.Foreground = Brushes.Black;
             activeOSButton = target;
+            SelectedOS = target.Content.ToString()!;
+
+            // Frissítjük a jelenleg látható modult, ha van
+            if (MainContentArea.Content is IWSView iws) iws.ApplyOSFilter(SelectedOS);
         }
 
         public void LogToConsole(string message)
@@ -63,73 +74,54 @@ namespace RTS
             LogScroller.ScrollToBottom();
         }
 
-        // --- MODULVÁLTÓ LOGIKA (MINDEN GOMBHOZ) ---
         private void Module_Click(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button;
             if (btn == null) return;
 
-            // Alapvető animáció indítása
-            if (btn.Name != "BtnHome")
-            {
-                Storyboard? sb = (Storyboard)this.FindResource("WorkingAnimation");
-                sb?.Begin();
-            }
+            // Neon animáció indítása (dolgozik a gép)
+            Storyboard? sb = (Storyboard)this.FindResource("WorkingAnimation");
+            sb?.Begin();
 
-            // Gombnév alapján betöltjük a megfelelő UserControl-t az A2 területre
             switch (btn.Name)
             {
                 case "BtnIWS":
-                    MainContentArea.Content = new IWSView();
-                    TxtInfo.Text = "Modul: IWS - Telepítés és Biztonsági keményítés.";
-                    LogToConsole("IWS Modul betöltve.");
+                    var iwsView = new IWSView();
+                    MainContentArea.Content = iwsView;
+                    iwsView.ApplyOSFilter(SelectedOS); // Azonnali szűrés betöltéskor
+                    TxtInfo.Text = "Modul: IWS - Telepítés és Biztonság";
                     break;
-
                 case "BtnNet":
-                    // Ha még nincs kész a nézet, jelezzük
-                    TxtInfo.Text = "Modul: Hálózat és Hardening.";
-                    LogToConsole("NET Modul betöltése... (Fejlesztés alatt)");
-                    // MainContentArea.Content = new NetView(); // Majd ha kész a fájl
+                    TxtInfo.Text = "Modul: Hálózat és Hardening (Hamarosan)";
+                    LogToConsole("Hálózati modul előkészítése...");
                     break;
-
-                case "BtnATI":
-                    TxtInfo.Text = "Modul: ATI - Automatikus Driver telepítés.";
-                    LogToConsole("ATI Modul betöltése... (Hamarosan)");
-                    break;
-
-                case "BtnRTS":
-                    TxtInfo.Text = "Modul: RTS - Remote Technical Support eszközök.";
-                    LogToConsole("RTS Eszközök betöltve.");
-                    break;
-
                 case "BtnHome":
                     MainContentArea.Content = null;
                     TxtInfo.Text = "Rendszer készenlétben...";
-                    LogToConsole("Visszatérés a kezdőképernyőre.");
                     break;
-
                 default:
-                    LogToConsole($"{btn.Content} OS specifikus mód kiválasztva.");
+                    // Ha OS választót nyomtunk (XP, 7, stb.)
+                    if (btn.Name.StartsWith("BtnWin") || btn.Name == "BtnXP") {
+                        HighlightOSButton(btn);
+                        LogToConsole($"OS Nézet váltva: {SelectedOS}");
+                    }
                     break;
             }
         }
 
         private void BtnThemeToggle_Click(object sender, RoutedEventArgs e)
         {
-            ResourceDictionary newTheme = new ResourceDictionary();
-            try {
-                newTheme.Source = isDark ? new Uri("Themes/LightTheme.xaml", UriKind.Relative) : new Uri("Themes/DarkTheme.xaml", UriKind.Relative);
-                Application.Current.Resources.MergedDictionaries.Clear();
-                Application.Current.Resources.MergedDictionaries.Add(newTheme);
-                isDark = !isDark;
-                if (activeOSButton != null) HighlightOSButton(activeOSButton);
-                LogToConsole($"Téma: {(isDark ? "Sötét" : "Világos")}");
-            } catch (Exception ex) { LogToConsole($"Hiba: {ex.Message}"); }
+            ResourceDictionary theme = new ResourceDictionary();
+            theme.Source = new Uri(isDark ? "Themes/LightTheme.xaml" : "Themes/DarkTheme.xaml", UriKind.Relative);
+            Application.Current.Resources.MergedDictionaries.Clear();
+            Application.Current.Resources.MergedDictionaries.Add(theme);
+            isDark = !isDark;
+            HighlightOSButton(activeOSButton!); // Színfrissítés
         }
 
         private void BtnExit_Click(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Bezárja az RTS alkalmazást?", "Kilépés", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Bezárja az RTS alkalmazást?", "Nexus RTS", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 Application.Current.Shutdown();
         }
     }
