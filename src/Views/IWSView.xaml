@@ -1,39 +1,20 @@
 <UserControl x:Class="RTS.Views.IWSView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="Transparent">
-    <Grid Margin="10">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="15">
         <StackPanel>
-            <TextBlock Text="WINDOWS TELEPÍTÉS ÉS BIZTONSÁG (IWS)" Foreground="{DynamicResource SecondaryNeon}" FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+            <TextBlock Text="IWS - Telepítés és Biztonsági Protokollok" Foreground="{DynamicResource SecondaryNeon}" FontSize="16" Margin="0,0,0,20"/>
             
-            <WrapPanel>
-                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" Click="BtnClick">
-                    <StackPanel>
-                        <TextBlock Text="Winget Auto-Install" FontWeight="Bold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Alap szoftverek" FontSize="10" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+            <WrapPanel x:Name="ButtonsPanel">
+                <Button Content="Szoftverek (Winget)" Tag="7,8,10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
+                
+                <Button Content="Windows Debloat" Tag="10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
 
-                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" Click="BtnClick">
-                    <StackPanel>
-                        <TextBlock Text="Windows Debloat" FontWeight="Bold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Felesleges appok törlése" FontSize="10" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-
-                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" Click="BtnClick">
-                    <StackPanel>
-                        <TextBlock Text="Biztonsági Keményítés" FontWeight="Bold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="UAC, Defender, Exploits" FontSize="10" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-
-                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" IsEnabled="False" Opacity="0.5">
-                    <StackPanel>
-                        <TextBlock Text="Hálózati Hardening" FontWeight="Bold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Hamarosan! (SMB, NetBIOS)" FontSize="10" Foreground="Yellow" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+                <Button Content="UAC Hardening" Tag="7,8,10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
+                <Button Content="SMBv1/NetBIOS Tiltás" Tag="XP,7,8,10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
+                <Button Content="Win11 Fixes" Tag="11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
+                
+                <Button Content="Zsarolóvírus védelem" Tag="10,11" Opacity="0.4" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
             </WrapPanel>
         </StackPanel>
     </Grid>
