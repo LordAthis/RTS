@@ -39,3 +39,17 @@ namespace RTS
         }
     }
 }
+// Példa egy funkció hívására
+private void RunScript(string scriptPath) {
+    // Animáció indítása
+    Storyboard sb = (Storyboard)this.FindResource("WorkingAnimation");
+    sb.Begin();
+
+    TxtLog.Text += $"\n> Futtatás: {scriptPath}...";
+    TxtInfo.Text = $"Folyamatban: {scriptPath} végrehajtása. Kérlek várj...";
+
+    // Itt hívjuk meg majd a tényleges PowerShell/Batch fájlt
+    
+    // Ha végzett (ez most csak szimuláció):
+    // sb.Stop();
+}
