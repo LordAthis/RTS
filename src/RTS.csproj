@@ -5,5 +5,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace>RTS</RootNamespace>
+    <AssemblyName>RTS</AssemblyName>
   </PropertyGroup>
 </Project>
