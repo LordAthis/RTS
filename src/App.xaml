@@ -7,7 +7,48 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            
-            </ResourceDictionary>
+
+            <Style x:Key="NeonButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentNeon}"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="Padding" Value="10,5"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" 
+                                    Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}" 
+                                    CornerRadius="8">
+                                <Border.Effect>
+                                    <DropShadowEffect x:Name="glow" BlurRadius="5" ShadowDepth="0" Color="{DynamicResource AccentNeon}" Opacity="0.5"/>
+                                </Border.Effect>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" BorderBrush="{DynamicResource SecondaryNeon}"/>
+                                    <Setter TargetName="glow" Color="{DynamicResource SecondaryNeon}"/>
+                                    <Setter TargetName="glow" BlurRadius="15"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Background="{DynamicResource AccentNeon}"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                    <Setter TargetName="glow" BlurRadius="25"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ExitButtonStyle" TargetType="Button" BasedOn="{StaticResource NeonButtonStyle}">
+                <Setter Property="BorderBrush" Value="#FF4444"/>
+                </Style>
+
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
