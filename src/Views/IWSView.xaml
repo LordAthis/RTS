@@ -1,0 +1,40 @@
+<UserControl x:Class="RTS.Views.IWSView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid Margin="10">
+        <StackPanel>
+            <TextBlock Text="WINDOWS TELEPÍTÉS ÉS BIZTONSÁG (IWS)" Foreground="{DynamicResource SecondaryNeon}" FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+            
+            <WrapPanel>
+                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" Click="BtnClick">
+                    <StackPanel>
+                        <TextBlock Text="Winget Auto-Install" FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Alap szoftverek" FontSize="10" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" Click="BtnClick">
+                    <StackPanel>
+                        <TextBlock Text="Windows Debloat" FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Felesleges appok törlése" FontSize="10" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" Click="BtnClick">
+                    <StackPanel>
+                        <TextBlock Text="Biztonsági Keményítés" FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="UAC, Defender, Exploits" FontSize="10" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource NeonButtonStyle}" Margin="5" Width="180" Height="60" IsEnabled="False" Opacity="0.5">
+                    <StackPanel>
+                        <TextBlock Text="Hálózati Hardening" FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Hamarosan! (SMB, NetBIOS)" FontSize="10" Foreground="Yellow" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
