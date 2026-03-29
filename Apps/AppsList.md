@@ -5,7 +5,7 @@ de ha valamiért nem érhető el valamelyik online, vagy éppen nincsen net, akk
 Emiatt érdemes letölteni és elhelyezni ebben a mappában!
 
 --------------------------------------
-£FIGYELEM!
+#FIGYELEM!
 --------------------------------------
 Minden egyes programohoz ellenőrizd a felhasználási jogokat!
 Bár igyekeztünk ingyenesen használható programokat összeszedni, ez nem garantálja a tévedést,
