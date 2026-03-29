@@ -10,9 +10,11 @@ Emiatt érdemes letölteni és elhelyezni ebben a mappában!
 Minden egyes programohoz ellenőrizd a felhasználási jogokat!
 Bár igyekeztünk ingyenesen használható programokat összeszedni, ez nem garantálja a tévedést,
 illetve ha változás következik be a jogokban!
+
+
 --------------------------------------
 A teljesség igénye nélkül:
-(Ezeket a programokat kell letöltened és ebbe a mappában elhelyezni, hohgy azokat a scrip-ek le tudják hívni!
+(Ezeket a programokat kell letöltened és ebbe a mappában elhelyezni, hohgy azokat a scrip-ek le tudják hívni!)
 --------------------------------------
 
 - Rufus
