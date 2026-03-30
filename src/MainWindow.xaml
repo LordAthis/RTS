@@ -29,7 +29,12 @@
                 <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button x:Name="BtnHome" Content="🏠" Style="{StaticResource NeonButtonStyle}" Width="45" Height="40" Margin="0,0,10,0" Click="Module_Click"/>
                     
-                    <StackPanel Orientation="Horizontal" Background="#1A1A1A" CornerRadius="10" Padding="5">
+                    <Border Background="#1A1A1A" CornerRadius="10" Padding="5">
+    <StackPanel Orientation="Horizontal">
+        <!-- Itt maradnak a gombok (BtnXP, BtnWin7, stb.) -->
+    </StackPanel>
+</Border>
+
                         <Button x:Name="BtnXP" Content="XP" Style="{StaticResource NeonButtonStyle}" Width="40" Margin="2" Click="Module_Click"/>
                         <Button x:Name="BtnWin7" Content="7" Style="{StaticResource NeonButtonStyle}" Width="40" Margin="2" Click="Module_Click"/>
                         <Button x:Name="BtnWin8" Content="8" Style="{StaticResource NeonButtonStyle}" Width="40" Margin="2" Click="Module_Click"/>
