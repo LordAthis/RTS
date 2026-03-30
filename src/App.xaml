@@ -32,12 +32,9 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" BorderBrush="{DynamicResource SecondaryNeon}"/>
                                     <Setter TargetName="glow" Color="{DynamicResource SecondaryNeon}"/>
-                                    <Setter TargetName="glow" BlurRadius="15"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Background="{DynamicResource AccentNeon}"/>
                                     <Setter Property="Foreground" Value="Black"/>
-                                    <Setter TargetName="glow" BlurRadius="25"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -47,8 +44,7 @@
 
             <Style x:Key="ExitButtonStyle" TargetType="Button" BasedOn="{StaticResource NeonButtonStyle}">
                 <Setter Property="BorderBrush" Value="#FF4444"/>
-                </Style>
-
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
