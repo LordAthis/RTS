@@ -1,8 +1,16 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Nyers színek (Color) - Ezeket csak belső hivatkozásra használjuk -->
     <Color x:Key="BgColor">#F5F5F5</Color>
-    <Color x:Key="AccentNeon">#008F24</Color> <Color x:Key="SecondaryNeon">#0097A7</Color> 
-    <SolidColorBrush x:Key="WindowBorderBrush" Color="{StaticResource AccentNeon}"/>
+    <Color x:Key="AccentColor">#008F24</Color> 
+    <Color x:Key="SecondaryColor">#0097A7</Color>
+
+    <!-- Ecsetek (Brush) - Ezeket látja a felület (Foreground/Background) -->
+    <SolidColorBrush x:Key="AccentNeon" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="SecondaryNeon" Color="{StaticResource SecondaryColor}"/>
+    <SolidColorBrush x:Key="WindowBorderBrush" Color="{StaticResource AccentColor}"/>
     <SolidColorBrush x:Key="MainBgBrush" Color="{StaticResource BgColor}"/>
     <SolidColorBrush x:Key="TextBrush" Color="#212121"/>
+
 </ResourceDictionary>
