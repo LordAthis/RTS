@@ -12,18 +12,52 @@
         ResizeMode="CanResizeWithGrip">
 
     <Window.Resources>
-        <Storyboard x:Key="A1_WorkAnim">
-            <ColorAnimation Storyboard.TargetName="A1_LoadingBorder" 
-                            Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
-                            From="#222" To="#00FF41" Duration="0:0:0.8" AutoReverse="True" RepeatBehavior="Forever"/>
-        </Storyboard>
+        <!-- NEON GOMB STÍLUS – háttér + hover + click villanás -->
+        <Style x:Key="NeonButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#111111"/>
+            <Setter Property="Foreground" Value="#00FF41"/>
+            <Setter Property="BorderBrush" Value="#00FF41"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Hover -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1F1F1F"/>
+                                <Setter Property="BorderBrush" Value="#00FF9F"/>
+                                <Setter Property="Foreground" Value="#00FF9F"/>
+                            </Trigger>
+                            <!-- Pressed (villanás) -->
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#00BFFF"/>
+                                <Setter Property="BorderBrush" Value="#00FFFF"/>
+                                <Setter Property="Foreground" Value="#000000"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
+        <!-- FŐ KERET -->
         <Border x:Name="MainBorder" CornerRadius="20"
                 Background="{DynamicResource MainBgBrush}" 
-                BorderBrush="#222" BorderThickness="2" Panel.ZIndex="0"
-                Margin="30,50,30,30">   <!-- ide került a padding hatás -->
+                BorderBrush="#222" BorderThickness="2" 
+                Panel.ZIndex="0"
+                Margin="20,45,20,20">
+
             <Grid Margin="15,40,15,15">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="3*"/>
@@ -34,6 +68,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
+                <!-- BAL OLDAL (fő tartalom) -->
                 <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
                     <Border x:Name="A1_LoadingBorder" Height="70" Background="#111" CornerRadius="12" BorderBrush="#222" BorderThickness="2">
                         <TextBlock x:Name="TxtInfo" Text="Rendszer készenlétben..." Foreground="Gray" Margin="15" VerticalAlignment="Center" FontSize="14" FontStyle="Italic"/>
@@ -43,6 +78,7 @@
                     </Border>
                 </StackPanel>
 
+                <!-- JOBB OLDAL (panelek + log) -->
                 <Grid Grid.Row="1" Grid.Column="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="1*"/>
@@ -63,11 +99,8 @@
                         </ScrollViewer>
                     </Border>
 
+                    <!-- jobb alsó kis gombok (GH W L) -->
                     <Grid Grid.Row="3" VerticalAlignment="Bottom">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                            <Button x:Name="BtnThemeToggle" Content="🌓" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Click="BtnThemeToggle_Click"/>
-                            <Button x:Name="BtnExit" Content="✕" Style="{StaticResource ExitButtonStyle}" Width="35" Height="35" Margin="8,0" Click="BtnExit_Click"/>
-                        </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button x:Name="BtnGH" Content="GH" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2" Click="BtnGH_Click"/>
                             <Button x:Name="BtnWeb" Content="W" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"/>
@@ -78,48 +111,44 @@
             </Grid>
         </Border>
 
-<!-- Felső sáv – magasabb ZIndex + hit-testing -->
-        <!-- FEJLÉC – csak ez lógjon ki felül, modul gombok jobbra igazítva -->
-        <Canvas VerticalAlignment="Top" 
-                HorizontalAlignment="Stretch" 
-                Height="68" 
-                Margin="30,-12,30,0" 
-                Panel.ZIndex="2" 
-                IsHitTestVisible="True">
+        <!-- FEJLÉC (kilóg felül) – most már XP, 7, 10, 11 gombokkal -->
+        <Canvas VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="68" 
+                Margin="30,-12,30,0" Panel.ZIndex="2" IsHitTestVisible="True">
+            <StackPanel Orientation="Horizontal" Canvas.Left="10" Margin="0,40,0,0">
+                <Button x:Name="BtnHome" Content="🏠" Style="{StaticResource NeonButtonStyle}" Width="45" Height="45" Click="Module_Click"/>
 
-            <Grid Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}" 
-                  Canvas.Left="20" Canvas.Top="8">
+                <!-- OS választó gombok -->
+                <Border Background="#1A1A1A" CornerRadius="12" Padding="5" Margin="10,0" BorderBrush="#333" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,37,0">
+                        <Button x:Name="BtnXP"   Content="XP"  Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
+                        <Button x:Name="BtnWin7" Content="7"   Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
+                        <Button x:Name="BtnWin10" Content="10" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
+                        <Button x:Name="BtnWin11" Content="11" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
+                    </StackPanel>
+                </Border>
 
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>   <!-- bal oldal: Home + XP + NEXUS -->
-                    <ColumnDefinition Width="*"/>      <!-- középső üres tér -->
-                    <ColumnDefinition Width="Auto"/>   <!-- jobb oldal: RTS / IWS / NET -->
-                </Grid.ColumnDefinitions>
+                <Border Background="Black" CornerRadius="15" Padding="20,5" BorderBrush="#444" BorderThickness="1" Margin="20,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="NEXUS" Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="35"/>
+                        <TextBlock Text="Bit&amp;Chip s.r.o.    " Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="20"/>
+                    </StackPanel>
+                </Border>
 
-                <!-- BAL OLDAL -->
-                <StackPanel Orientation="Horizontal" Grid.Column="0">
-                    <Button x:Name="BtnHome" Content="🏠" Style="{StaticResource NeonButtonStyle}" Width="45" Height="45" Click="Module_Click"/>
-                    <Border Background="#1A1A1A" CornerRadius="12" Padding="5" Margin="10,0" BorderBrush="#333" BorderThickness="1">
-                        <StackPanel Orientation="Horizontal">
-                            <Button x:Name="BtnXP" Content="XP" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
-                            <Button x:Name="BtnWin11" Content="11" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Background="Black" CornerRadius="15" Padding="20,5" BorderBrush="#444" BorderThickness="1" Margin="10,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="NEXUS" Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="20"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <!-- JOBB OLDAL – modul gombok -->
-                <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,20,0">
-                    <Button x:Name="BtnRTS" Content="🛠️ RTS" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
+                <!-- Modul gombok jobbra -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,37,0">
+                    <Button x:Name="BtnRTS" Content="F1" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
                     <Button x:Name="BtnIWS" Content="📦 IWS" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
                     <Button x:Name="BtnNet" Content="🌐 NET" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
                 </StackPanel>
+            </StackPanel>
+        </Canvas>
 
-            </Grid>
+        <!-- BAL ALSÓ SAROK – lebegő gombok (theme + exit) -->
+        <Canvas VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="45,0,0,35" Panel.ZIndex="3" IsHitTestVisible="True">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="BtnThemeToggle" Content="🌓" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="12,0,0,250" Click="BtnThemeToggle_Click"/>
+                <Button x:Name="BtnExit" Content="✕" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="12,0,0,250" Click="BtnExit_Click"/>
+            </StackPanel>
         </Canvas>
     </Grid>
 </Window>
