@@ -36,3 +36,7 @@ project.lock.json
 .fuse_hidden*
 .directory
 .Trash-*
+
+/TMP/
+/Temp/
+/temp/
