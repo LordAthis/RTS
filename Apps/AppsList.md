@@ -24,6 +24,7 @@ A teljesség igénye nélkül:
 - Xtreme Shell (Neonity féle)
 - Radmin
 - Eset OnlineScanner (Eset Nod32 telepítés nélküli verziója!)
+- H.D. Sentinel
 - 
 
 --------------------------------------
