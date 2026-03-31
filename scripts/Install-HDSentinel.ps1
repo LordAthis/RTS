@@ -1,71 +1,63 @@
-# Relatív útvonal meghatározása az RTS projektstruktúrához
+# Útvonalak meghatározása
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$appsFolder = Join-Path $scriptPath "..\Apps" 
+$appsFolder = Join-Path $scriptPath "..\Apps"
+$tmpFolder = Join-Path $scriptPath "..\TMP"
+$configFile = Join-Path $tmpFolder "hds_config.tmp"
+$installDir = "C:\Program Files (x86)\Hard Disk Sentinel"
 $localZip = Join-Path $appsFolder "hdsentinel_pro_setup.zip"
 
-# Beállítások
-$appName = "Hard Disk Sentinel"
-$installDir = "C:\Program Files (x86)\Hard Disk Sentinel"
-$url = "https://harddisksentinel.com"
-$email = "nexusszerviz@gmail.com"
-
-# 1. Apps mappa biztosítása
-if (!(Test-Path $appsFolder)) { New-Item -ItemType Directory -Path $appsFolder | Out-Null }
-
-# 2. Letöltés vagy Offline mód (RTS /Apps mappából)
-Write-Host "Forrás ellenőrzése..." -ForegroundColor Cyan
-try {
-    $hasInternet = Test-Connection -ComputerName 8.8.8.8 -Count 1 -Quiet -ErrorAction SilentlyContinue
-    if ($hasInternet) {
-        Write-Host "Letöltés folyamatban a hivatalos oldalról..."
-        Invoke-WebRequest -Uri $url -OutFile $localZip -TimeoutSec 30
-    } elseif (Test-Path $localZip) {
-        Write-Host "Offline mód: Relatív /Apps mappa használata." -ForegroundColor Yellow
-    } else {
-        throw "Nincs internet és hiányzik a ZIP az /Apps mappából!"
-    }
-} catch {
-    if (Test-Path $localZip) {
-        Write-Host "Hiba a letöltéskor, de van helyi fájl. Folytatás..." -ForegroundColor Yellow
-    } else {
-        Write-Error "Kritikus hiba: A telepítő nem elérhető sehol!"
-        exit
-    }
+# 1. Konfiguráció beolvasása az RTS által létrehozott fájlból
+if (Test-Path $configFile) {
+    $configRaw = Get-Content $configFile -Raw
+    $parts = $configRaw.Split('|')
+    $pcIdentifier = $parts[0].Trim()      # Pl: "Kovacs_Janos_PC"
+    $enableEmail = $parts[1].Trim()       # "1" vagy "0"
+} else {
+    # Alapértelmezett, ha nincs fájl (biztonsági tartalék)
+    $pcIdentifier = "Ismeretlen_Gep"
+    $enableEmail = "0"
 }
 
-# 3. Kicsomagolás (ideiglenes mappába az Apps-en belül)
-$tempExtract = Join-Path $appsFolder "HDS_Temp"
-Expand-Archive -Path $localZip -DestinationPath $tempExtract -Force
+# 2. Telepítő letöltése/ellenőrzése (Hibrid mód)
+if (!(Test-Path $appsFolder)) { New-Item -ItemType Directory -Path $appsFolder | Out-Null }
+try {
+    if (Test-Connection -ComputerName 8.8.8.8 -Count 1 -Quiet -ErrorAction SilentlyContinue) {
+        Invoke-WebRequest -Uri "https://harddisksentinel.com" -OutFile $localZip -TimeoutSec 30
+    }
+} catch { Write-Host "Offline mód..." }
 
-# 4. Silent Telepítés
-Write-Host "Telepítés/Frissítés folyamatban..." -ForegroundColor Cyan
-$setupExe = Get-ChildItem "$tempExtract\*.exe" | Select-Object -First 1
-Start-Process -FilePath $setupExe.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS" -Wait
+# 3. Telepítés
+if (Test-Path $localZip) {
+    $tempExtract = Join-Path $appsFolder "HDS_Temp"
+    Expand-Archive -Path $localZip -DestinationPath $tempExtract -Force
+    $setupExe = Get-ChildItem "$tempExtract\*.exe" | Select-Object -First 1
+    Start-Process -FilePath $setupExe.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES" -Wait
 
-# 5. Konfiguráció (INI injektálás)
-$iniPath = Join-Path $installDir "HDSentinel.ini"
-$configContent = @"
+    # 4. HDSentinel.ini testreszabása
+    # Az e-mail tárgymezőjébe vagy az üzenetbe bekerül az azonosító!
+    $iniPath = Join-Path $installDir "HDSentinel.ini"
+    $configContent = @"
 [Settings]
 ServiceMode=1
 AutoUpdate=1
-EmailEnabled=1
-EmailAddress=$email
+EmailEnabled=$enableEmail
+EmailAddress=nexusszerviz@gmail.com
+EmailSubject=HDS Alert - $pcIdentifier
 AlertOnlyCritical=1
 "@
-Set-Content -Path $iniPath -Value $configContent -Encoding UTF8
+    Set-Content -Path $iniPath -Value $configContent -Encoding UTF8
 
-# 6. Szolgáltatás indítása
-Write-Host "Szolgáltatás indítása..." -ForegroundColor Cyan
-try {
-    # Megpróbáljuk elindítani a szervizt
-    Start-Service -Name "Hard Disk Sentinel" -ErrorAction SilentlyContinue
-    # Biztonsági mentés: Ha nem szervizként futna, indítjuk az exe-t háttérben
-    Start-Process -FilePath (Join-Path $installDir "HDSentinel.exe") -ArgumentList "-r" -WindowStyle Hidden
-} catch {
-    Write-Host "A szerviz indítása sikertelen, de az alkalmazás konfigurálva van." -ForegroundColor Red
+    # 5. Indítás és Riport küldése
+    $hdsExe = Join-Path $installDir "HDSentinel.exe"
+    Start-Process -FilePath $hdsExe -ArgumentList "-r" -WindowStyle Hidden
+    
+    # Ha kértünk e-mailt, küldünk egy azonnali állapotjelentést
+    if ($enableEmail -eq "1") {
+        Write-Host "Kezdeti állapotjelentés küldése: $pcIdentifier"
+        # A HDS parancssori kapcsolója egy riport azonnali elküldéséhez:
+        Start-Process -FilePath $hdsExe -ArgumentList "-REPORT", "-EMAIL" -WindowStyle Hidden
+    }
+
+    # Takarítás
+    Remove-Item $tempExtract -Recurse -Force
 }
-
-# 7. Takarítás
-Remove-Item $tempExtract -Recurse -Force
-
-Write-Host "Kész! HDSentinel telepítve, konfigurálva és fut." -ForegroundColor Green
