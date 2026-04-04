@@ -1,0 +1,16 @@
+[
+  {
+    "name": "IWS",
+    "repo": "LordAthis/IWS",
+    "description": "Windows Biztonság növelése",
+    "last_checked": "2026-04-05",
+    "last_commit_date": "2026-03-15"
+  },
+  {
+    "name": "RescueData",
+    "repo": "LordAthis/RescueData.ps1",
+    "description": "Adatmentő szkript",
+    "last_checked": "2026-04-05",
+    "last_commit_date": "2026-02-20"
+  }
+]
