@@ -2,15 +2,81 @@
   {
     "name": "IWS",
     "repo": "LordAthis/IWS",
-    "description": "Windows Biztonság növelése",
-    "last_checked": "2026-04-05",
-    "last_commit_date": "2026-03-15"
+    "description": "Increase Windows Security – Windows biztonsági hardening toolkit",
+    "category": "security",
+    "entry_point": "installer\\hardening-gui.py",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
   },
   {
     "name": "RescueData",
     "repo": "LordAthis/RescueData.ps1",
-    "description": "Adatmentő szkript",
-    "last_checked": "2026-04-05",
-    "last_commit_date": "2026-02-20"
+    "description": "Data Rescue Toolkit – Intelligens adatmentő és összefésülő szkript",
+    "category": "data",
+    "entry_point": "RescueData.ps1",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "win11_stop",
+    "repo": "LordAthis/win11_stop.bat",
+    "description": "Win11 Update Blocker – Windows 11 kényszerített frissítés tiltása",
+    "category": "system",
+    "entry_point": "win11_stop_prevent_update.bat",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "CleanBrave",
+    "repo": "LordAthis/CleanBrave_Debian_json",
+    "description": "Brave böngésző debloat konfiguráció – Windows registry és Linux JSON",
+    "category": "browser",
+    "entry_point": "cleanbrave.json",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "all_bookmark_to_one",
+    "repo": "LordAthis/all_bookmark_to_one",
+    "description": "Könyvjelzők összefésülése – Böngésző kedvencek egyesítése és rendezése",
+    "category": "browser",
+    "entry_point": "",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": false
+  },
+  {
+    "name": "CoffeTime",
+    "repo": "LordAthis/CoffeTime",
+    "description": "Munka szimulátor – Aktivitás-szimulátor tétlenség megelőzésére",
+    "category": "utility",
+    "entry_point": "CoffeTime.py",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "Network-Tools",
+    "repo": "LordAthis/Network-Tools",
+    "description": "Hálózati segédeszközök – Windows, Linux és MacOS szkriptek",
+    "category": "network",
+    "entry_point": "win\\halozati_felderites.bat",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "hijackthislord",
+    "repo": "LordAthis/hijackthislord",
+    "description": "HijackThis elemző – Rendszer-indítási elemek ellenőrzése",
+    "category": "security",
+    "entry_point": "",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
   }
 ]
