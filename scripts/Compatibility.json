@@ -1,0 +1,6 @@
+{
+    "PS_Versions": {
+        "2.0": { "Status": "Legacy", "Update_URL": "https://aka.ms", "Target": "WMF 5.1" },
+        "5.1": { "Status": "Stable", "Update_URL": null, "Target": null }
+    }
+}
