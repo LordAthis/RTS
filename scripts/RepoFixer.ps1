@@ -1,83 +1,75 @@
 <#
 .SYNOPSIS
-    RepoFixer - Fájl feloldó, kicsomagoló és rendszerintegráló eszköz.
+    RepoFixer v2 - Teljes Windows integráció (Fájl/Mappa jobb klikk)
 #>
 
 $ScriptName = "RepoFixer.ps1"
 $TargetDir = "$env:SystemRoot\Scripts"
-$LogFile = Join-Path $PSScriptRoot "repofixer_log.txt"
+$LogFile = Join-Path $TargetDir "repofixer_log.txt"
 
 function Write-Log($Message) {
     $Stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $LogLine = "[$Stamp] $Message"
     Write-Host $LogLine -ForegroundColor Cyan
-    $LogLine | Out-File -FilePath $LogFile -Append
+    if (Test-Path $TargetDir) { $LogLine | Out-File -FilePath $LogFile -Append }
 }
 
-# 1. ADMIN JOG ELLENŐRZÉSE (Szükséges a C:\Windows íráshoz)
+# 1. ADMIN ELLENŐRZÉS ÉS TELEPÍTÉS
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Warning "Kérlek, futtasd rendszergazdaként a telepítéshez/frissítéshez!"
-    pause
-    exit
+    Write-Warning "Admin jog szükséges a telepítéshez/frissítéshez!"
+    pause; exit
 }
 
-Write-Log "--- RepoFixer Indítása ---"
-
-# 2. TELEPÍTÉSI LOGIKA
 $CurrentLocation = $MyInvocation.MyCommand.Definition
-$InWindowsFolder = $CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::OrdinalIgnoreCase)
-
-if (-not $InWindowsFolder) {
-    $Choice = Read-Host "Szeretnéd telepíteni/frissíteni a scriptet a Windows mappába és hozzáadni a Jobb klikk menühöz? (i/n)"
+if ($CurrentLocation -notstartsWith $TargetDir) {
+    $Choice = Read-Host "Telepíted/Frissíted a scriptet a rendszerbe? (i/n)"
     if ($Choice -eq 'i') {
-        if (-not (Test-Path $TargetDir)) { New-Item -Path $TargetDir -ItemType Directory }
-        
-        # Másolás/Frissítés
+        if (-not (Test-Path $TargetDir)) { New-Item -Path $TargetDir -ItemType Directory | Out-Null }
         Copy-Item -Path $CurrentLocation -Destination (Join-Path $TargetDir $ScriptName) -Force
-        Write-Log "Script másolva: $TargetDir"
+        
+        # REGISTRY INTEGRÁCIÓ (Háttér, Mappa és Fájl jobb klikk)
+        $ContextPaths = @(
+            "Registry::HKEY_CLASSES_ROOT\Directory\Background\shell\RepoFixer",
+            "Registry::HKEY_CLASSES_ROOT\Directory\shell\RepoFixer",
+            "Registry::HKEY_CLASSES_ROOT\*\shell\RepoFixer"
+        )
 
-        # Jobb klikk menü (Registry)
-        $RegPath = "Registry::HKEY_CLASSES_ROOT\Directory\Background\shell\RepoFixer"
-        if (-not (Test-Path $RegPath)) { New-Item -Path $RegPath -Force }
-        New-ItemProperty -Path $RegPath -Name "MUIVerb" -Value "Mappa javítása (RepoFixer)" -Force | Out-Null
-        New-ItemProperty -Path $RegPath -Name "Icon" -Value "powershell.exe" -Force | Out-Null
-        
-        $CmdPath = Join-Path $RegPath "command"
-        if (-not (Test-Path $CmdPath)) { New-Item -Path $CmdPath -Force }
-        $Value = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$TargetDir\$ScriptName`""
-        Set-ItemProperty -Path $CmdPath -Name "(Default)" -Value $Value
-        
-        Write-Log "Gyorsindító (Jobb klikk) létrehozva/frissítve."
+        foreach ($RegPath in $ContextPaths) {
+            if (-not (Test-Path $RegPath)) { New-Item -Path $RegPath -Force | Out-Null }
+            Set-ItemProperty -Path $RegPath -Name "MUIVerb" -Value "RepoFixer - Javítás és Feloldás"
+            Set-ItemProperty -Path $RegPath -Name "Icon" -Value "powershell.exe"
+            
+            $CmdPath = Join-Path $RegPath "command"
+            if (-not (Test-Path $CmdPath)) { New-Item -Path $CmdPath -Force | Out-Null }
+            $ExecLine = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$TargetDir\$ScriptName`""
+            Set-ItemProperty -Path $CmdPath -Name "(Default)" -Value $ExecLine
+        }
+        Write-Log "Telepítés és Registry integráció kész."
     }
 }
 
-# 3. MŰVELETI RÉSZ (Feloldás és Kicsomagolás)
+# 2. MŰVELETI RÉSZ
 $WorkDir = Get-Location
-Write-Log "Munkavégzés helye: $WorkDir"
+Write-Log "Indítás: $WorkDir"
 
-# Fájlok feloldása
-Write-Log "Zárolások feloldása (Unblock-File)..."
+# Feloldás
+Write-Log "Zárolások feloldása..."
 Get-ChildItem -Recurse | Unblock-File
 
-# ZIP-ek kezelése
-$zips = Get-ChildItem -Filter *.zip
-foreach ($zip in $zips) {
-    $zipBase = $zip.BaseName
-    $dest = Join-Path $WorkDir $zipBase
+# Kicsomagolás dupla mappa szűréssel
+Get-ChildItem -Filter *.zip | ForEach-Object {
+    $dest = Join-Path $WorkDir $_.BaseName
+    Write-Log "Kicsomagolás: $($_.Name)"
+    Expand-Archive -Path $_.FullName -DestinationPath $dest -Force
     
-    Write-Log "Kicsomagolás: $($zip.Name)"
-    Expand-Archive -Path $zip.FullName -DestinationPath $dest -Force
-    
-    # Dupla mappa elleni logika
     $content = Get-ChildItem -Path $dest
     if ($content.Count -eq 1 -and $content.PSIsContainer) {
-        Write-Log "Dupla mappa észlelve ($($content.Name)), javítás..."
-        $tempPath = $dest + "_temp"
-        Move-Item -Path "$($content.FullName)\*" -Destination $dest -Force
-        Remove-Item -Path $content.FullName -Recurse -Force
+        $inner = $content.FullName
+        Move-Item -Path "$inner\*" -Destination $dest -Force
+        Remove-Item -Path $inner -Recurse -Force
+        Write-Log "Dupla mappa korrigálva."
     }
 }
 
-Write-Log "--- Művelet befejezve ---"
-Write-Host "`nA napló mentve: $LogFile" -ForegroundColor Green
-pause
+Write-Log "Kész!"
+if ($Host.Name -eq "ConsoleHost") { Start-Sleep -Seconds 2 }
