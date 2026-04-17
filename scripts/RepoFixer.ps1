@@ -21,7 +21,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 }
 
 $CurrentLocation = $MyInvocation.MyCommand.Definition
-if ($CurrentLocation -notlike $TargetDir) {
+if (-not ($CurrentLocation.StartsWith ($TargetDir))) {
     $Choice = Read-Host "Telepíted/Frissíted a scriptet a rendszerbe? (i/n)"
     if ($Choice -eq 'i') {
         if (-not (Test-Path $TargetDir)) { New-Item -Path $TargetDir -ItemType Directory | Out-Null }
