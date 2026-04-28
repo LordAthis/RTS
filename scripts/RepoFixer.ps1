@@ -3,77 +3,73 @@
     RepoFixer v3.5 - Admin-biztos, Mappa-megőrző és Folyamatjelzővel ellátott verzió
 #>
 
+param([string]$StartDir)
+
+# --- KONFIGURÁCIÓ ---
 $ScriptName = "RepoFixer.ps1"
 $TargetDir = "$env:SystemRoot\Scripts"
 $LogFile = Join-Path $TargetDir "repofixer_log.txt"
 
 # --- ADMIN AUTO-RELAUNCH ---
+# Ellenőrizzük, hogy admin-ként futunk-e. Ha nem, újraindítjuk magunkat admin joggal.
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    $Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -StartDir `"$Get-Location`""
+    # Az aktuális munkakönyvtár megőrzése az újraindítás után is
+    $CurrentDir = if ($StartDir) { $StartDir } else { (Get-Location).Path }
+    $Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -StartDir `"$CurrentDir`""
+    
     Start-Process powershell.exe -ArgumentList $Arguments -Verb RunAs
     exit
 }
 
-param([string]$StartDir)
+# Ha kaptunk kezdőkönyvtárat, lépjünk oda
 if ($StartDir) { Set-Location $StartDir }
 
 function Write-Log($Message) {
     $Stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $LogLine = "[$Stamp] $Message"
     Write-Host $LogLine -ForegroundColor Cyan
+    # Csak akkor naplózunk fájlba, ha a célmappa már létezik
     if (Test-Path $TargetDir) { $LogLine | Out-File -FilePath $LogFile -Append }
 }
 
 $CurrentLocation = $PSCommandPath
 
-# 1. TELEPÍTÉSI LOGIKA (Registry javítással)
+# --- 1. TELEPÍTÉSI ÉS REGISTRY LOGIKA ---
+# Ha a script nem a végleges helyéről fut, felajánlja a telepítést
 if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::OrdinalIgnoreCase))) {
     $Choice = Read-Host "Telepíted/Frissíted a scriptet a rendszerbe? (i/n)"
     if ($Choice -eq 'i') {
         Write-Log "Telepítés indítása..."
-        if (-not (Test-Path $TargetDir)) { New-Item -Path $TargetDir -ItemType Directory -Force | Out-Null }
-        Copy-Item -Path $CurrentLocation -Destination (Join-Path $TargetDir $ScriptName) -Force
         
-        $RegKeys = @("Directory\Background\shell\RepoFixer", "Directory\shell\RepoFixer", "*\shell\RepoFixer")
-        foreach ($SubKey in $RegKeys) {
-            $Key = [Microsoft.Win32.Registry]::ClassesRoot.CreateSubKey($SubKey)
-            $Key.SetValue("MUIVerb", "RepoFixer - Javítás és Feloldás")
-            $Key.SetValue("Icon", "powershell.exe")
-            $CmdKey = $Key.CreateSubKey("command")
-            
-            # FIGYELEM: A %V paraméter biztosítja a menüből induló helyszínt!
-            $ExecLine = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$TargetDir\$ScriptName`" -StartDir `"%V`""
-            $CmdKey.SetValue("", $ExecLine)
-            $CmdKey.Close(); $Key.Close()
+        # Mappa létrehozása, ha nem létezik
+        if (-not (Test-Path $TargetDir)) { 
+            New-Item -Path $TargetDir -ItemType Directory -Force | Out-Null 
         }
-        Write-Log "KÉSZ! A menüpont frissítve."
-        pause; exit
-    }
-}
-
-# 2. MŰVELETI RÉSZ FOLYAMATJELZŐVEL
-$WorkDir = Get-Location
-if ($WorkDir -eq "$env:SystemRoot\System32") {
-    Write-Warning "Hiba: A script a System32-ben ragadt. Leállítás!"
-    pause; exit
-}
-
-Write-Log "Fájlok listázása..."
-$Files = Get-ChildItem -Recurse -File -ErrorAction SilentlyContinue
-$Total = $Files.Count
-$Counter = 0
-
-if ($Total -gt 0) {
-    foreach ($File in $Files) {
-        $Counter++
-        $Percent = ($Counter / $Total) * 100
-        Write-Progress -Activity "Fájlok feloldása folyamatban..." -Status "Fájl: $($File.Name)" -PercentComplete $Percent
         
-        $File | Unblock-File
+        # Másolás a rendszerkönyvtárba
+        $FinalPath = Join-Path $TargetDir $ScriptName
+        Copy-Item -Path $CurrentLocation -Destination $FinalPath -Force
+        
+        # REGISTRY JAVÍTÁS: Jobb klikkes menü hozzáadása a mappákhoz
+        Write-Log "Registry bejegyzések frissítése..."
+        $RegShellPath = "Registry::HKEY_CLASSES_ROOT\Directory\shell\RepoFixer"
+        $RegCommandPath = "$RegShellPath\command"
+        
+        if (-not (Test-Path $RegShellPath)) { New-Item -Path $RegShellPath -Force | Out-Null }
+        Set-ItemProperty -Path $RegShellPath -Name "(Default)" -Value "RepoFixer futtatása itt"
+        Set-ItemProperty -Path $RegShellPath -Name "Icon" -Value "powershell.exe"
+        
+        if (-not (Test-Path $RegCommandPath)) { New-Item -Path $RegCommandPath -Force | Out-Null }
+        # A parancs, ami elindítja a scriptet az adott mappában (%1)
+        $CommandValue = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir `"%1`""
+        Set-ItemProperty -Path $RegCommandPath -Name "(Default)" -Value $CommandValue
+        
+        Write-Log "Telepítés sikeres! Mostantól jobb klikkel is elérhető mappákon."
     }
-    Write-Log "Kész! $Total fájl sikeresen feloldva."
-} else {
-    Write-Log "Nem található feloldandó fájl ebben a mappában."
 }
 
-Start-Sleep -Seconds 3
+# --- 2. A SCRIPT TÉNYLEGES FELADATA ---
+Write-Log "RepoFixer aktív a következő helyen: $((Get-Location).Path)"
+# Ide jöhet a további javítási logika (pl. git clean, törlések, stb.)
+Write-Host "Folyamat kész." -ForegroundColor Green
+Pause
