@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    RepoFixer v4.0 - Windows letöltési zárolás feloldó, jobb klikkes telepítéssel
+    RepoFixer v4.1 - Windows letöltési zárolás feloldó, jobb klikkes telepítéssel
 #>
 
 param([string]$StartDir)
@@ -21,7 +21,6 @@ $TargetDir   = "$env:SystemRoot\Scripts"
 $FinalPath   = Join-Path $TargetDir $ScriptName
 
 # --- 1. TELEPÍTÉSI LOGIKA ---
-# Ha a script nem a végleges helyéről fut, felajánlja a telepítést
 $CurrentLocation = $PSCommandPath
 if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::OrdinalIgnoreCase))) {
 
@@ -30,24 +29,17 @@ if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::Ord
 
     if ($Choice -ieq 'i') {
 
-        # Célmappa létrehozása, ha még nem létezik
         if (-not (Test-Path $TargetDir)) {
             New-Item -Path $TargetDir -ItemType Directory -Force | Out-Null
         }
 
-        # Script másolása
         Copy-Item -Path $CurrentLocation -Destination $FinalPath -Force
         Write-Host "Script masolva: $FinalPath" -ForegroundColor Cyan
 
-        # Registry bejegyzések:
-        #   Directory\shell            -> jobb klikk MAPPÁN
-        #   Directory\Background\shell -> jobb klikk a mappa HÁTTERÉN (benne állva)
-        #   *\shell                    -> jobb klikk FÁJLON
-        #
         # FONTOS: a HKCR\*\shell kulcsot a PowerShell New-Item befagyasztja,
         # ezért arra reg.exe-t használunk közvetlenül.
 
-        # --- 2a. Mappa + Háttér (PowerShell API) ---
+        # --- Mappa + Háttér (PowerShell API) ---
         $PsEntries = @(
             @{ Path = "Registry::HKEY_CLASSES_ROOT\Directory\shell\RepoFixer";            Param = '"%1"' },
             @{ Path = "Registry::HKEY_CLASSES_ROOT\Directory\Background\shell\RepoFixer"; Param = '"%V"' }
@@ -74,7 +66,7 @@ if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::Ord
             }
         }
 
-        # --- 2b. Fájl (reg.exe – a HKCR\* kulcs PS alatt lefagy!) ---
+        # --- Fájl (reg.exe) ---
         Write-Host "  Registry: HKCR\*\shell\RepoFixer (reg.exe)" -ForegroundColor DarkCyan
         try {
             $CmdValue = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir `"%1`""
@@ -96,14 +88,46 @@ if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::Ord
 
 # --- 2. FELOLDÁS (a tényleges munka) ---
 $Target = (Get-Location).Path
+
+# --- BIZTONSÁGI TILTÓLISTA ---
+$BlockedPaths = @(
+    $env:SystemRoot,
+    "$env:SystemRoot\System32",
+    "$env:SystemRoot\SysWOW64",
+    "$env:SystemRoot\WinSxS",
+    "$env:SystemRoot\Scripts",
+    $env:ProgramFiles,
+    ${env:ProgramFiles(x86)},
+    $env:ProgramData,
+    [System.Environment]::GetFolderPath("System"),
+    [System.Environment]::GetFolderPath("Windows")
+)
+
+foreach ($Blocked in $BlockedPaths) {
+    if (-not $Blocked) { continue }
+    if ($Target.TrimEnd('\') -eq $Blocked.TrimEnd('\') -or
+        $Target.StartsWith($Blocked.TrimEnd('\') + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        Write-Host ""
+        Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" -ForegroundColor Red
+        Write-Host "  VEDETT RENDSZERMAPPA - MUVELET MEGTAGADVA  " -ForegroundColor Red
+        Write-Host "  Cel : $Target"                               -ForegroundColor Red
+        Write-Host "  Ok  : tiltott teruleten belul: $Blocked"     -ForegroundColor Red
+        Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Nyomjon meg egy gombot a kilepeshez..." -ForegroundColor Yellow
+        Pause
+        exit 1
+    }
+}
+
 Write-Host ""
 Write-Host "--- RepoFixer AKTIV ---" -ForegroundColor Cyan
-Write-Host "Helyszin: $Target"       -ForegroundColor Gray
+Write-Host "  Cel: $Target"          -ForegroundColor White
 Write-Host ""
 
-$Files   = Get-ChildItem -Path $Target -Recurse -File -ErrorAction SilentlyContinue
-$Total   = $Files.Count
-$Counter = 0
+$Files     = Get-ChildItem -Path $Target -Recurse -File -ErrorAction SilentlyContinue
+$Total     = $Files.Count
+$Counter   = 0
 $Unblocked = 0
 $Skipped   = 0
 
@@ -126,8 +150,8 @@ Write-Progress -Activity "Fajlok feloldasa..." -Completed
 
 Write-Host ""
 Write-Host "KESZ!" -ForegroundColor Green
-Write-Host "  Feloldva : $Unblocked fajl"
-Write-Host "  Athugralva: $Skipped fajl (hozzaferes megtagadva vagy mar feloldva)"
+Write-Host "  Feloldva   : $Unblocked fajl"
+Write-Host "  Athugralva : $Skipped fajl (hozzaferes megtagadva vagy mar feloldva)"
 Write-Host ""
 Write-Host "Nyomjon meg egy gombot a bezarashoz..." -ForegroundColor Yellow
 Pause
