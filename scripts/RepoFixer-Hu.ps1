@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    RepoFixer v4.1 - Windows letöltési zárolás feloldó, jobb klikkes telepítéssel
+    RepoFixer v4.3 - Windows letöltési zárolás feloldó, jobb klikkes telepítéssel
 #>
 
 param([string]$StartDir)
@@ -13,8 +13,16 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     exit
 }
 
-# Beállítjuk a munkakönyvtárat
-if ($StartDir) { Set-Location $StartDir }
+# Beállítjuk a munkakönyvtárat – idézőjeleket és szóközt trimmelünk az útvonalból
+if ($StartDir) {
+    $StartDir = $StartDir.Trim().Trim('"').Trim("'")
+    if (Test-Path $StartDir) {
+        Set-Location $StartDir
+    } else {
+        Write-Host "  [FIGYELEM] A kapott StartDir nem letezik: '$StartDir'" -ForegroundColor Yellow
+        Write-Host "  Az aktualis mappa lesz a cel: $((Get-Location).Path)"  -ForegroundColor Yellow
+    }
+}
 
 $ScriptName  = "RepoFixer.ps1"
 $TargetDir   = "$env:SystemRoot\Scripts"
@@ -36,47 +44,48 @@ if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::Ord
         Copy-Item -Path $CurrentLocation -Destination $FinalPath -Force
         Write-Host "Script masolva: $FinalPath" -ForegroundColor Cyan
 
-        # FONTOS: a HKCR\*\shell kulcsot a PowerShell New-Item befagyasztja,
-        # ezért arra reg.exe-t használunk közvetlenül.
+        # --- Registry műveletek .NET API-val ---
+        # A Microsoft.Win32.Registry közvetlenül kezeli a HKCR\* kulcsot,
+        # nem fagy be mint a PS provider vagy a reg.exe.
 
-        # --- Mappa + Háttér (PowerShell API) ---
-        $PsEntries = @(
-            @{ Path = "Registry::HKEY_CLASSES_ROOT\Directory\shell\RepoFixer";            Param = '"%1"' },
-            @{ Path = "Registry::HKEY_CLASSES_ROOT\Directory\Background\shell\RepoFixer"; Param = '"%V"' }
+        $MenuLabel = "Fajlok feloldasa (RepoFixer)"
+        $MenuIcon  = "powershell.exe,0"
+
+        # Parancs mappára / mappa hátterére: StartDir = az adott mappa
+        $CmdFolder = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir `"%1`""
+        $CmdBg     = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir `"%V`""
+        # Parancs fájlra: StartDir = a fájl szülőmappája
+        $CmdFile   = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir `"%~dp1.`""
+
+        $RegEntries = @(
+            @{ Hive = "Directory\shell\RepoFixer";            Cmd = $CmdFolder },
+            @{ Hive = "Directory\Background\shell\RepoFixer"; Cmd = $CmdBg     },
+            @{ Hive = "*\shell\RepoFixer";                    Cmd = $CmdFile   }
         )
 
-        foreach ($Entry in $PsEntries) {
-            $ShellPath = $Entry.Path
-            $CmdPath   = "$ShellPath\command"
-            $CmdValue  = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir $($Entry.Param)"
+        $HKCR = [Microsoft.Win32.Registry]::ClassesRoot
 
-            Write-Host "  Registry: $ShellPath" -ForegroundColor DarkCyan
+        foreach ($Entry in $RegEntries) {
+            Write-Host "  Registry: HKCR\$($Entry.Hive)" -ForegroundColor DarkCyan
             try {
-                if (-not (Test-Path $ShellPath)) { New-Item -Path $ShellPath -Force | Out-Null }
-                Set-ItemProperty -Path $ShellPath -Name "(Default)" -Value "Fajlok feloldasa (RepoFixer)" -Force
-                Set-ItemProperty -Path $ShellPath -Name "Icon"      -Value "powershell.exe,0"             -Force
+                # Takarítás: töröljük a régi kulcsot ha létezik
+                try { $HKCR.DeleteSubKeyTree($Entry.Hive, $false) } catch {}
 
-                if (-not (Test-Path $CmdPath)) { New-Item -Path $CmdPath -Force | Out-Null }
-                Set-ItemProperty -Path $CmdPath -Name "(Default)" -Value $CmdValue -Force
+                # Új kulcs létrehozása
+                $Key = $HKCR.CreateSubKey($Entry.Hive)
+                $Key.SetValue("", $MenuLabel)
+                $Key.SetValue("Icon", $MenuIcon)
+                $Key.Close()
+
+                $CmdKey = $HKCR.CreateSubKey("$($Entry.Hive)\command")
+                $CmdKey.SetValue("", $Entry.Cmd)
+                $CmdKey.Close()
 
                 Write-Host "  OK" -ForegroundColor Green
             }
             catch {
                 Write-Host "  HIBA: $_" -ForegroundColor Red
             }
-        }
-
-        # --- Fájl (reg.exe) ---
-        Write-Host "  Registry: HKCR\*\shell\RepoFixer (reg.exe)" -ForegroundColor DarkCyan
-        try {
-            $CmdValue = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir `"%1`""
-            & reg.exe add "HKCR\*\shell\RepoFixer"          /ve /d "Fajlok feloldasa (RepoFixer)" /f | Out-Null
-            & reg.exe add "HKCR\*\shell\RepoFixer"          /v "Icon" /d "powershell.exe,0"       /f | Out-Null
-            & reg.exe add "HKCR\*\shell\RepoFixer\command"  /ve /d $CmdValue                      /f | Out-Null
-            Write-Host "  OK" -ForegroundColor Green
-        }
-        catch {
-            Write-Host "  HIBA: $_" -ForegroundColor Red
         }
 
         Write-Host "Telepites sikeres! Jobb klikknel megjelenik: 'Fajlok feloldasa (RepoFixer)'" -ForegroundColor Green
