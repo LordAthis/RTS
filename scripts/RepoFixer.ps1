@@ -37,9 +37,9 @@ $CurrentLocation = $PSCommandPath
 # --- 1. TELEPÍTÉSI ÉS REGISTRY LOGIKA ---
 # Ha a script nem a végleges helyéről fut, felajánlja a telepítést
 if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::OrdinalIgnoreCase))) {
-    $Choice = Read-Host "Telepíted/Frissíted a scriptet a rendszerbe? (i/n)"
+    $Choice = Read-Host "Telepited/Frissited a scriptet a rendszerbe? (i/n)"
     if ($Choice -eq 'i') {
-        Write-Log "Telepítés indítása..."
+        Write-Log "Telepites inditasa..."
         
         # Mappa létrehozása, ha nem létezik
         if (-not (Test-Path $TargetDir)) { 
@@ -51,12 +51,12 @@ if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::Ord
         Copy-Item -Path $CurrentLocation -Destination $FinalPath -Force
         
         # REGISTRY JAVÍTÁS: Jobb klikkes menü hozzáadása a mappákhoz
-        Write-Log "Registry bejegyzések frissítése..."
+        Write-Log "Registry bejegyzesek frissitese..."
         $RegShellPath = "Registry::HKEY_CLASSES_ROOT\Directory\shell\RepoFixer"
         $RegCommandPath = "$RegShellPath\command"
         
         if (-not (Test-Path $RegShellPath)) { New-Item -Path $RegShellPath -Force | Out-Null }
-        Set-ItemProperty -Path $RegShellPath -Name "(Default)" -Value "RepoFixer futtatása itt"
+        Set-ItemProperty -Path $RegShellPath -Name "(Default)" -Value "RepoFixer futtatasa itt"
         Set-ItemProperty -Path $RegShellPath -Name "Icon" -Value "powershell.exe"
         
         if (-not (Test-Path $RegCommandPath)) { New-Item -Path $RegCommandPath -Force | Out-Null }
@@ -64,12 +64,12 @@ if (-not ($CurrentLocation.StartsWith($TargetDir, [System.StringComparison]::Ord
         $CommandValue = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$FinalPath`" -StartDir `"%1`""
         Set-ItemProperty -Path $RegCommandPath -Name "(Default)" -Value $CommandValue
         
-        Write-Log "Telepítés sikeres! Mostantól jobb klikkel is elérhető mappákon."
+        Write-Log "Telepites sikeres! Mostantol jobb klikkel is elerheto mappakon."
     }
 }
 
 # --- 2. A SCRIPT TÉNYLEGES FELADATA ---
-Write-Log "RepoFixer aktív a következő helyen: $((Get-Location).Path)"
+Write-Log "RepoFixer aktiv a kovetkezo helyen: $((Get-Location).Path)"
 # Ide jöhet a további javítási logika (pl. git clean, törlések, stb.)
-Write-Host "Folyamat kész." -ForegroundColor Green
+Write-Host "Folyamat kesz." -ForegroundColor Green
 Pause
