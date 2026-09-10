@@ -4,6 +4,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms> <!-- FolderBrowserDialog-hoz (elso-inditasi telepito) -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace>RTS</RootNamespace>
     <AssemblyName>RTS</AssemblyName>

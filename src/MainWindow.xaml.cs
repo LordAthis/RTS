@@ -1,9 +1,13 @@
 using System;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using RTS.Services;
 using RTS.Views;   // IWSView miatt
 
 namespace RTS
@@ -19,11 +23,75 @@ namespace RTS
             InitializeComponent();
             DetectCurrentOS();
             LogToConsole("NEXUS RTS Rendszer betöltve. Keretrendszer készen áll.");
+            EnsureRtsInstalled();
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left) this.DragMove();
+        }
+
+        // ─────────────────────────────────────────────
+        //  ELSO-INDITASI TELEPITO
+        // ─────────────────────────────────────────────
+        private void EnsureRtsInstalled()
+        {
+            string root = ModuleRunner.FindRtsRoot();
+            if (System.IO.File.Exists(System.IO.Path.Combine(root, "modules.json")))
+            {
+                LogToConsole("RTS adatmappa megtalalva: " + root);
+                return;
+            }
+
+            LogToConsole("Elso inditas - modules.json nem talalhato. Telepitest kell futtatni.");
+            string? chosen = RtsInstaller.PromptForInstallFolder();
+            if (chosen == null)
+            {
+                LogToConsole("Telepites megszakitva - a modulok nem lesznek elerhetok, amig ujra nem inditod es nem valasztasz mappat.");
+                return;
+            }
+
+            LogToConsole($"Telepites inditasa ide: {chosen}");
+            Task.Run(() =>
+            {
+                RtsInstaller.RunFirstTimeSetup(chosen, msg => Dispatcher.Invoke(() => LogToConsole(msg)));
+                Dispatcher.Invoke(() =>
+                {
+                    ModuleRunner.ResetRootCache();
+                    LogToConsole("Telepites befejezve - nyisd meg ujra a Modulok nezetet a friss allapothoz.");
+                });
+            });
+        }
+
+        // ─────────────────────────────────────────────
+        //  ABLAK-ATMERETEZES (WindowStyle="None" + AllowsTransparency
+        //  miatt a beepitett resize-grip nem mukodik, ezert kulon
+        //  kezeljuk a WM_SYSCOMMAND / SC_SIZE uzenettel)
+        // ─────────────────────────────────────────────
+        [DllImport("user32.dll")]
+        private static extern int SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool ReleaseCapture();
+
+        private const int WM_SYSCOMMAND = 0x112;
+
+        private static readonly System.Collections.Generic.Dictionary<string, int> ResizeDirections = new()
+        {
+            { "Left", 61441 }, { "Right", 61442 }, { "Top", 61443 },
+            { "TopLeft", 61444 }, { "TopRight", 61445 }, { "Bottom", 61446 },
+            { "BottomLeft", 61447 }, { "BottomRight", 61448 }
+        };
+
+        private void ResizeWindow(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+            string? direction = (sender as FrameworkElement)?.Tag as string;
+            if (direction == null || !ResizeDirections.TryGetValue(direction, out int dirCode)) return;
+
+            ReleaseCapture();
+            IntPtr hwnd = new WindowInteropHelper(this).Handle;
+            SendMessage(hwnd, WM_SYSCOMMAND, dirCode, 0);
         }
 
         private void DetectCurrentOS()

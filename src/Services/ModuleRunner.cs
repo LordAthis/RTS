@@ -14,8 +14,11 @@ namespace RTS.Services
     {
         private static string? _cachedRoot;
 
-        // Megkeresi az RTS gyokermappajat a futtathato fajl konyvtarabol
-        // felfele lepkedve (max 6 szint), a modules.json jelenlete alapjan.
+        // Megkeresi az RTS gyokermappajat:
+        //  1) a futtathato fajl konyvtarabol felfele lepkedve (max 6 szint),
+        //     a modules.json jelenlete alapjan - ez a "repo-bol futtatva" eset;
+        //  2) ha az nem talalja, a korabban elmentett telepitesi mappat
+        //     (RtsInstaller) - ez a "telepitve, mashonnan futtatva" eset.
         public static string FindRtsRoot()
         {
             if (_cachedRoot != null) return _cachedRoot;
@@ -31,11 +34,23 @@ namespace RTS.Services
                 dir = Directory.GetParent(dir)?.FullName;
             }
 
+            string? saved = RtsInstaller.ReadSavedRoot();
+            if (saved != null)
+            {
+                _cachedRoot = saved;
+                return saved;
+            }
+
             // Fallback: nem talalta - a futtatasi konyvtart adja vissza,
             // a hivo fel fogja ismerni a hianyzo modules.json-t.
             _cachedRoot = AppDomain.CurrentDomain.BaseDirectory;
             return _cachedRoot;
         }
+
+        // Az elso-inditasi telepites (RtsInstaller) utan hivando, hogy a
+        // kovetkezo FindRtsRoot() mar a friss allapotot lassa, ne a
+        // korabban (esetleg meg ures) gyokerre mutasson.
+        public static void ResetRootCache() => _cachedRoot = null;
 
         public static string AppsDir => Path.Combine(FindRtsRoot(), "Apps");
 

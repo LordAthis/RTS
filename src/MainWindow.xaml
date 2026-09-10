@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="RTS" Height="650" Width="1100"
+        MinHeight="500" MinWidth="820"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -102,9 +103,12 @@
                     <!-- jobb alsó kis gombok (GH W L) -->
                     <Grid Grid.Row="3" VerticalAlignment="Bottom">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="BtnGH" Content="GH" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2" Click="BtnGH_Click"/>
-                            <Button x:Name="BtnWeb" Content="W" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"/>
-                            <Button x:Name="BtnLn" Content="L" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"/>
+                            <Button x:Name="BtnGH" Content="GH" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
+                                    ToolTip="GitHub repo megnyitasa" Click="BtnGH_Click"/>
+                            <Button x:Name="BtnWeb" Content="W" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
+                                    ToolTip="Weboldal/blog (hamarosan)"/>
+                            <Button x:Name="BtnLn" Content="L" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
+                                    ToolTip="LinkedIn/kozosseg (hamarosan)"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -115,15 +119,16 @@
         <Canvas VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="68" 
                 Margin="30,-12,30,0" Panel.ZIndex="2" IsHitTestVisible="True">
             <StackPanel Orientation="Horizontal" Canvas.Left="10" Margin="0,40,0,0">
-                <Button x:Name="BtnHome" Content="🏠" Style="{StaticResource NeonButtonStyle}" Width="45" Height="45" Click="Module_Click"/>
+                <Button x:Name="BtnHome" Content="🏠" Style="{StaticResource NeonButtonStyle}" Width="45" Height="45"
+                        ToolTip="Fooldal" Click="Module_Click"/>
 
                 <!-- OS választó gombok -->
                 <Border Background="#1A1A1A" CornerRadius="12" Padding="5" Margin="10,0" BorderBrush="#333" BorderThickness="1">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,37,0">
-                        <Button x:Name="BtnXP"   Content="XP"  Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
-                        <Button x:Name="BtnWin7" Content="7"   Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
-                        <Button x:Name="BtnWin10" Content="10" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
-                        <Button x:Name="BtnWin11" Content="11" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" Click="Module_Click"/>
+                        <Button x:Name="BtnXP"   Content="XP"  Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows XP" Click="Module_Click"/>
+                        <Button x:Name="BtnWin7" Content="7"   Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows 7" Click="Module_Click"/>
+                        <Button x:Name="BtnWin10" Content="10" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows 10" Click="Module_Click"/>
+                        <Button x:Name="BtnWin11" Content="11" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows 11" Click="Module_Click"/>
                     </StackPanel>
                 </Border>
 
@@ -136,20 +141,43 @@
 
                 <!-- Modul gombok jobbra -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,37,0">
-                    <Button x:Name="BtnRTS" Content="F1" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
-                    <Button x:Name="BtnIWS" Content="📦 IWS" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
-                    <Button x:Name="BtnNet" Content="🌐 NET" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
-                    <Button x:Name="BtnModules" Content="🗂 MOD" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
+                    <Button x:Name="BtnRTS" Content="F1" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
+                            ToolTip="Gyorsindito (hamarosan)" Click="Module_Click"/>
+                    <Button x:Name="BtnIWS" Content="📦 IWS" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
+                            ToolTip="IWS - Biztonsagi hardening modul" Click="Module_Click"/>
+                    <Button x:Name="BtnNet" Content="🌐 NET" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
+                            ToolTip="Halozati eszkozok (hamarosan)" Click="Module_Click"/>
+                    <Button x:Name="BtnModules" Content="🗂 MOD" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
+                            ToolTip="Osszes modul listaja es futtatasa" Click="Module_Click"/>
                 </StackPanel>
             </StackPanel>
         </Canvas>
 
         <!-- BAL ALSÓ SAROK – lebegő gombok (theme + exit) -->
-        <Canvas VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="45,0,0,35" Panel.ZIndex="3" IsHitTestVisible="True">
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="BtnThemeToggle" Content="🌓" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="12,0,0,250" Click="BtnThemeToggle_Click"/>
-                <Button x:Name="BtnExit" Content="✕" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="12,0,0,250" Click="BtnExit_Click"/>
-            </StackPanel>
-        </Canvas>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="45,0,0,28" Panel.ZIndex="3">
+            <Button x:Name="BtnThemeToggle" Content="🌓" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="0,0,10,0"
+                    ToolTip="Sotet/vilagos tema valtas" Click="BtnThemeToggle_Click"/>
+            <Button x:Name="BtnExit" Content="✕" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42"
+                    ToolTip="Kilepes az RTS-bol" Click="BtnExit_Click"/>
+        </StackPanel>
+
+        <!-- ABLAK-ATMERETEZO SZEGELYEK (lathatatlanok, a transzparens keret-resben)
+             WindowStyle="None" + AllowsTransparency miatt kulon kell kezelni. -->
+        <Border Panel.ZIndex="10" Background="Transparent" Width="8" HorizontalAlignment="Left" Margin="0,45,0,20"
+                Cursor="SizeWE" Tag="Left" MouseLeftButtonDown="ResizeWindow"/>
+        <Border Panel.ZIndex="10" Background="Transparent" Width="8" HorizontalAlignment="Right" Margin="0,45,0,20"
+                Cursor="SizeWE" Tag="Right" MouseLeftButtonDown="ResizeWindow"/>
+        <Border Panel.ZIndex="10" Background="Transparent" Height="8" VerticalAlignment="Top" Margin="20,0,20,0"
+                Cursor="SizeNS" Tag="Top" MouseLeftButtonDown="ResizeWindow"/>
+        <Border Panel.ZIndex="10" Background="Transparent" Height="8" VerticalAlignment="Bottom" Margin="20,0,20,0"
+                Cursor="SizeNS" Tag="Bottom" MouseLeftButtonDown="ResizeWindow"/>
+        <Border Panel.ZIndex="10" Background="Transparent" Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Top"
+                Cursor="SizeNWSE" Tag="TopLeft" MouseLeftButtonDown="ResizeWindow"/>
+        <Border Panel.ZIndex="10" Background="Transparent" Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Top"
+                Cursor="SizeNESW" Tag="TopRight" MouseLeftButtonDown="ResizeWindow"/>
+        <Border Panel.ZIndex="10" Background="Transparent" Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                Cursor="SizeNESW" Tag="BottomLeft" MouseLeftButtonDown="ResizeWindow"/>
+        <Border Panel.ZIndex="10" Background="Transparent" Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Cursor="SizeNWSE" Tag="BottomRight" MouseLeftButtonDown="ResizeWindow"/>
     </Grid>
 </Window>
