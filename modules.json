@@ -70,7 +70,7 @@
     "repo": "LordAthis/Network-Tools",
     "description": "Halozati segedeszkozok - Windows, Linux es MacOS szkriptek",
     "category": "network",
-    "entry_point": "win\\halozati_felderites.bat",
+    "entry_point": "win\\Launcher.ps1",
     "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
@@ -78,6 +78,7 @@
   },
   {
     "name": "HardwareConflict-Resolver",
+    "display_name": "HCR",
     "repo": "LordAthis/HardwareConflict-Resolver",
     "description": "Hardver-utkozes felderito es javito - driver es szolgaltatas konfliktusok",
     "category": "hardware",
@@ -100,6 +101,7 @@
   },
   {
     "name": "DeepSysTools",
+    "display_name": "DST",
     "repo": "LordAthis/DeepSysTools",
     "description": "Mely rendszerszintu diagnosztikai es javito eszkozkeszlet",
     "category": "system",
@@ -133,6 +135,7 @@
   },
   {
     "name": "Bloatware-Killer",
+    "display_name": "BT",
     "repo": "LordAthis/Bloatware-Killer",
     "description": "Felesleges elotelepitett szoftverek (bloatware) eltavolitasa",
     "category": "cleanup",
@@ -166,6 +169,7 @@
   },
   {
     "name": "SystemHive-Optimizer",
+    "display_name": "SHO",
     "repo": "LordAthis/SystemHive-Optimizer",
     "description": "Registry hive optimalizalo eszkoz",
     "category": "registry",
@@ -188,6 +192,7 @@
   },
   {
     "name": "CleanupTools-Retro",
+    "display_name": "CleanR",
     "repo": "LordAthis/CleanupTools-Retro",
     "description": "Rendszer-takaritas retro rendszerekre (XP/Win7), .bat menuvel",
     "category": "cleanup-retro",

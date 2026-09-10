@@ -8,6 +8,15 @@ namespace RTS.Models
         [JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        // Rovid, felhasznaloi felulet-baratabb nev (pl. gombfelirat).
+        // Ha nincs megadva a modules.json-ban, a "name" mezot hasznaljuk
+        // helyette - a mappa/rts-menu.json keresese mindig a "name"-en
+        // alapul, ezt a DisplayName nem befolyasolja.
+        [JsonPropertyName("display_name")]
+        public string? DisplayNameRaw { get; set; }
+
+        public string DisplayName => string.IsNullOrWhiteSpace(DisplayNameRaw) ? Name : DisplayNameRaw!;
+
         [JsonPropertyName("repo")]
         public string Repo { get; set; } = "";
 

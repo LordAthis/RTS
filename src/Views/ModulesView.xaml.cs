@@ -60,13 +60,18 @@ namespace RTS.Views
             string tierTag = mod.Tier == "premium" ? "  [PREMIUM]" : "";
             string statusTag = mod.Enabled ? "" : "  (nincs kesz kod / letiltva)";
 
+            // FONTOS: ez a lista gorgetheto dobozban van, ahol elfer a teljes
+            // nev - itt SOSEM roviditunk, a display_name csak a szuk helyu
+            // (pl. fejlec-)gomboknak van fenntartva.
             var textPanel = new StackPanel();
             textPanel.Children.Add(new TextBlock
             {
                 Text = mod.Name + tierTag + statusTag,
                 Foreground = (Brush)Application.Current.Resources["TextBrush"],
                 FontWeight = FontWeights.Bold,
-                FontSize = 14
+                FontSize = 14,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 480
             });
             textPanel.Children.Add(new TextBlock
             {
@@ -79,14 +84,19 @@ namespace RTS.Views
             Grid.SetColumn(textPanel, 0);
             grid.Children.Add(textPanel);
 
+            bool hasMenu = ModuleMenuCatalog.HasMenu(mod.Name);
+
             var btn = new Button
             {
-                Content = "Futtatas",
+                // Ha van gomb-szintu rts-menu.json a modulhoz, azt nyitjuk meg
+                // az RTS sajat feluleten belul; kulonben (meg nincs feldolgozva)
+                // a modul teljes sajat belepesi pontja indul, vegso esetkent.
+                Content = hasMenu ? "Menü megnyitása" : "Futtatas (teljes modul)",
                 Style = (Style)Application.Current.Resources["NeonButtonStyle"],
-                Width = 100,
+                Width = 150,
                 Height = 36,
                 Tag = mod,
-                IsEnabled = mod.Enabled && !string.IsNullOrWhiteSpace(mod.EntryPoint)
+                IsEnabled = mod.Enabled && (hasMenu || !string.IsNullOrWhiteSpace(mod.EntryPoint))
             };
             btn.Click += Btn_Click;
             Grid.SetColumn(btn, 1);
@@ -108,6 +118,16 @@ namespace RTS.Views
                 return;
             }
 
+            if (ModuleMenuCatalog.HasMenu(mod.Name))
+            {
+                // A menu-nezet is gorgetheto doboz - itt is a teljes nev jar.
+                var menuView = new ModuleMenuView(mod.Name);
+                mainWin.SetMainContent(menuView, $"Modul: {mod.Name}");
+                menuView.ApplyOSFilter(mainWin.SelectedOS);
+                return;
+            }
+
+            mainWin.LogToConsole($"[{mod.Name}] Meg nincs gomb-szintu menuje - a modul sajat teljes belepesi pontja indul, vegso esetkent.");
             var result = ModuleRunner.Run(mod.Name, mod.EntryPoint);
             mainWin.LogToConsole(result.Message);
         }

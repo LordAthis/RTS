@@ -130,6 +130,17 @@ namespace RTS
 
             if (MainContentArea.Content is IWSView iws)
                 iws.ApplyOSFilter(SelectedOS);
+            else if (MainContentArea.Content is Views.ModuleMenuView menuView)
+                menuView.ApplyOSFilter(SelectedOS);
+        }
+
+        // Mas nezetek (pl. ModulesView) innen tudjak kicserelni a fo tartalmat,
+        // anelkul, hogy a MainContentArea/TxtInfo mezokhoz kozvetlenul
+        // hozzáférnének.
+        public void SetMainContent(UIElement content, string infoText)
+        {
+            MainContentArea.Content = content;
+            TxtInfo.Text = infoText;
         }
 
         public void LogToConsole(string message)
@@ -146,20 +157,56 @@ namespace RTS
 
             switch (btn.Name)
             {
-                case "BtnRTS":   // most F1
-                    LogToConsole("F1 gomb lenyomva – funkció később implementálva");
+                case "BtnRTS":   // F1 - rendszerinfo / gyorsinditó
+                    var infoView = new InfoView();
+                    MainContentArea.Content = infoView;
+                    TxtInfo.Text = "RTS - Rendszerinfo";
                     break;
 
                 case "BtnIWS":
-                    var iwsView = new IWSView();
-                    MainContentArea.Content = iwsView;
-                    iwsView.ApplyOSFilter(SelectedOS);
+                    // Uj, egyseges menu-nezet, ha van rts-menu.json a modulhoz;
+                    // kulonben visszaesunk a regi, kezzel irt IWSView-ra.
+                    if (ModuleMenuCatalog.HasMenu("IWS"))
+                    {
+                        var iwsMenuView = new Views.ModuleMenuView("IWS");
+                        MainContentArea.Content = iwsMenuView;
+                        iwsMenuView.ApplyOSFilter(SelectedOS);
+                    }
+                    else
+                    {
+                        var iwsView = new IWSView();
+                        MainContentArea.Content = iwsView;
+                        iwsView.ApplyOSFilter(SelectedOS);
+                    }
                     TxtInfo.Text = "Modul: IWS - Telepítés és Biztonság";
                     break;
 
                 case "BtnNet":
-                    TxtInfo.Text = "Modul: Hálózat (hamarosan)";
-                    LogToConsole("Hálózati modul előkészítése...");
+                    TxtInfo.Text = "Modul: Halozat (Network-Tools)";
+                    if (!ModuleRunner.ModuleInstalled("Network-Tools"))
+                    {
+                        MainContentArea.Content = null;
+                        LogToConsole("[Network-Tools] Nincs telepitve - nyisd meg a MOD nezetet, vagy varj a telepites vegere.");
+                    }
+                    else if (ModuleMenuCatalog.HasMenu("Network-Tools"))
+                    {
+                        // Ha kesobb keszul rts-menu.json a Network-Tools-hoz, automatikusan
+                        // a beepitett, gomb-szintu menut hasznaljuk a kulon ablak helyett.
+                        var netMenuView = new Views.ModuleMenuView("Network-Tools");
+                        MainContentArea.Content = netMenuView;
+                        netMenuView.ApplyOSFilter(SelectedOS);
+                    }
+                    else
+                    {
+                        // Egyelore nincs rts-menu.json a Network-Tools-hoz (nem volt resze
+                        // ennek a kornek) - a teljes sajat menujet nyitjuk meg, vegso esetkent.
+                        MainContentArea.Content = null;
+                        var netModule = ModuleCatalog.Load().Find(m => m.Name == "Network-Tools");
+                        string netEntry = netModule?.EntryPoint ?? "win\\Launcher.ps1";
+                        LogToConsole("[Network-Tools] Meg nincs gomb-szintu menuje ebben a korben - a modul sajat teljes menuje nyilik meg, kulon ablakban.");
+                        var netResult = ModuleRunner.Run("Network-Tools", netEntry);
+                        LogToConsole(netResult.Message);
+                    }
                     break;
 
                 case "BtnModules":
