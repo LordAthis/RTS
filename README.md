@@ -1,6 +1,6 @@
 # RTS — Reparing's · Tuning's · Setting's
 
-*(Angolul a README második felében olvasható!)*
+*(It can be read in English in the second half of the README!)*
 
 > Javítások, Tuningok, BugFix-ek, Finomhangolások és Beállítások Windows-ra
 > — a szerviz-tulajdonos szerszámos-ládája, egységes keretrendszerben.
