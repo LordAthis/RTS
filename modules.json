@@ -2,9 +2,10 @@
   {
     "name": "IWS",
     "repo": "LordAthis/IWS",
-    "description": "Increase Windows Security – Windows biztonsági hardening toolkit",
+    "description": "Increase Windows Security - Windows biztonsagi hardening toolkit",
     "category": "security",
     "entry_point": "installer\\hardening-gui.py",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": true
@@ -12,9 +13,10 @@
   {
     "name": "RescueData",
     "repo": "LordAthis/RescueData.ps1",
-    "description": "Data Rescue Toolkit – Intelligens adatmentő és összefésülő szkript",
+    "description": "Data Rescue Toolkit - Intelligens adatmento es osszefeso szkript",
     "category": "data",
     "entry_point": "RescueData.ps1",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": true
@@ -22,19 +24,21 @@
   {
     "name": "win11_stop",
     "repo": "LordAthis/win11_stop.bat",
-    "description": "Win11 Update Blocker – Windows 11 kényszerített frissítés tiltása",
+    "description": "Win11 Update Blocker - Windows 11 kenyszeritett frissites tiltasa",
     "category": "system",
     "entry_point": "win11_stop_prevent_update.bat",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": true
   },
   {
     "name": "CleanBrave",
-    "repo": "LordAthis/CleanBrave_Debian_json",
-    "description": "Brave böngésző debloat konfiguráció – Windows registry és Linux JSON",
+    "repo": "LordAthis/CleanBrave_WinReg",
+    "description": "Brave bongeszo debloat - registry alapu tisztitas (win/linux/mac osszevonas folyamatban, addig ez a reg-alapu valtozat az elsodleges)",
     "category": "browser",
-    "entry_point": "cleanbrave.json",
+    "entry_point": "Script\\Check-BraveRegistry.ps1",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": true
@@ -42,9 +46,10 @@
   {
     "name": "all_bookmark_to_one",
     "repo": "LordAthis/all_bookmark_to_one",
-    "description": "Könyvjelzők összefésülése – Böngésző kedvencek egyesítése és rendezése",
+    "description": "Konyvjelzok osszefesulese - Bongeszo kedvencek egyesitese es rendezese (meg csak terv/README, kod nincs)",
     "category": "browser",
     "entry_point": "",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": false
@@ -52,9 +57,10 @@
   {
     "name": "CoffeTime",
     "repo": "LordAthis/CoffeTime",
-    "description": "Munka szimulátor – Aktivitás-szimulátor tétlenség megelőzésére",
+    "description": "Munka szimulator - Aktivitas-szimulator tetlenseg megelozesere",
     "category": "utility",
     "entry_point": "CoffeTime.py",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": true
@@ -62,21 +68,167 @@
   {
     "name": "Network-Tools",
     "repo": "LordAthis/Network-Tools",
-    "description": "Hálózati segédeszközök – Windows, Linux és MacOS szkriptek",
+    "description": "Halozati segedeszkozok - Windows, Linux es MacOS szkriptek",
     "category": "network",
     "entry_point": "win\\halozati_felderites.bat",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": true
   },
   {
-    "name": "hijackthislord",
-    "repo": "LordAthis/hijackthislord",
-    "description": "HijackThis elemző – Rendszer-indítási elemek ellenőrzése",
-    "category": "security",
-    "entry_point": "",
+    "name": "HardwareConflict-Resolver",
+    "repo": "LordAthis/HardwareConflict-Resolver",
+    "description": "Hardver-utkozes felderito es javito - driver es szolgaltatas konfliktusok",
+    "category": "hardware",
+    "entry_point": "Launcher.ps1",
+    "visibility": "public",
     "last_checked": "",
     "last_commit_date": "",
     "enabled": true
+  },
+  {
+    "name": "MotwCleaner",
+    "repo": "LordAthis/MotwCleaner",
+    "description": "Mark of the Web (letoltesi zarolas) eltavolito - tobbnyelvu valtozatok (Hu/En/De/Fr)",
+    "category": "utility",
+    "entry_point": "MotwCleaner-Hu.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "DeepSysTools",
+    "repo": "LordAthis/DeepSysTools",
+    "description": "Mely rendszerszintu diagnosztikai es javito eszkozkeszlet",
+    "category": "system",
+    "entry_point": "Launcher.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "DiagMailer",
+    "repo": "LordAthis/DiagMailer",
+    "description": "Diagnosztikai riport osszeallito es kuldo (email) eszkoz",
+    "category": "diagnostics",
+    "entry_point": "Launcher.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "Defrager",
+    "repo": "LordAthis/Defrager",
+    "description": "Lemez-toredezettsegmentesito eszkoz",
+    "category": "system",
+    "entry_point": "Launcher.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "Bloatware-Killer",
+    "repo": "LordAthis/Bloatware-Killer",
+    "description": "Felesleges elotelepitett szoftverek (bloatware) eltavolitasa",
+    "category": "cleanup",
+    "entry_point": "Launcher.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "WinRegTools",
+    "repo": "LordAthis/WinRegTools",
+    "description": "Registry-alapu beallito eszkozkeszlet, retro-kompatibilis (XP/2000/NT4-ig fallback)",
+    "category": "registry",
+    "entry_point": "Launcher.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "SetUpER",
+    "repo": "LordAthis/SetUpER",
+    "description": "Uj gep / friss telepites utani automatikus beallito szkript",
+    "category": "setup",
+    "entry_point": "Starter.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "SystemHive-Optimizer",
+    "repo": "LordAthis/SystemHive-Optimizer",
+    "description": "Registry hive optimalizalo eszkoz",
+    "category": "registry",
+    "entry_point": "Launcher.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "CleanupTools",
+    "repo": "LordAthis/CleanupTools",
+    "description": "Altalanos rendszer-takaritas eszkozkeszlet",
+    "category": "cleanup",
+    "entry_point": "Scripts\\MasterCleanup.ps1",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "CleanupTools-Retro",
+    "repo": "LordAthis/CleanupTools-Retro",
+    "description": "Rendszer-takaritas retro rendszerekre (XP/Win7), .bat menuvel",
+    "category": "cleanup-retro",
+    "entry_point": "GETTOOLS.BAT",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": true
+  },
+  {
+    "name": "BrowserLockdown",
+    "repo": "LordAthis/BrowserLockdown",
+    "description": "Bongeszo zarolasi/hardening szkriptek (meg csak vazrepo, kod nincs benne)",
+    "category": "browser",
+    "entry_point": "",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": false
+  },
+  {
+    "name": "A_T_I",
+    "repo": "LordAthis/A_T_I",
+    "description": "Hardver/boot/drive diagnosztikai gyujtemeny (meg fejlesztes alatt, nincs egyseges belepesi pont)",
+    "category": "hardware",
+    "entry_point": "",
+    "visibility": "public",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": false
+  },
+  {
+    "name": "hijackthislord",
+    "repo": "LordAthis/hijackthislord",
+    "description": "HijackThis elemzo - Rendszer-inditasi elemek ellenorzese (PREMIUM - zart repo, elofizetes/tokenes eleres szukseges)",
+    "category": "security",
+    "entry_point": "",
+    "visibility": "private",
+    "tier": "premium",
+    "last_checked": "",
+    "last_commit_date": "",
+    "enabled": false
   }
 ]

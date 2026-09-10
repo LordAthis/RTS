@@ -18,10 +18,17 @@
     Csak az itt megadott nevű modulokat tölti le (vesszővel elválasztva).
     Pl.: -ModuleFilter "IWS,CoffeTime"
 
+.PARAMETER LicenseToken
+    Elofizetos ("premium") modulokhoz szukseges GitHub token (a zart repok
+    letoltesehez). Ha nem adod meg, a script megprobalja a RTS_LICENSE_TOKEN
+    kornyezeti valtozobol, majd a license.local.json fajlbol (gitignore-olt,
+    soha ne kerul be a repoba!) beolvasni.
+
 .EXAMPLE
     .\bootstrap.ps1
     .\bootstrap.ps1 -Force
     .\bootstrap.ps1 -ModuleFilter "IWS,Network-Tools"
+    .\bootstrap.ps1 -LicenseToken "ghp_xxx..."
 
 .NOTES
     Szerző : LordAthis
@@ -33,7 +40,8 @@
 [CmdletBinding()]
 param(
     [switch]$Force,
-    [string]$ModuleFilter = ""
+    [string]$ModuleFilter = "",
+    [string]$LicenseToken = ""
 )
 
 # ─────────────────────────────────────────────
@@ -74,15 +82,44 @@ function Test-GitAvailable {
     }
 }
 
+function Get-LicenseToken {
+    # Prioritas: parameter -> kornyezeti valtozo -> helyi (gitignore-olt) fajl
+    if ($LicenseToken -ne "") { return $LicenseToken }
+    if ($env:RTS_LICENSE_TOKEN) { return $env:RTS_LICENSE_TOKEN }
+    $localLicFile = Join-Path $ScriptDir "license.local.json"
+    if (Test-Path $localLicFile) {
+        try {
+            $lic = Get-Content $localLicFile -Raw | ConvertFrom-Json
+            if ($lic.token) { return $lic.token }
+        } catch { }
+    }
+    return $null
+}
+
 function Install-ModuleViaGit {
-    param([string]$Repo, [string]$TargetPath)
+    param([string]$Repo, [string]$TargetPath, [string]$Visibility = "public")
+
     $url = "$GithubBase/$Repo.git"
-    Write-Log "Git klónozás: $url → $TargetPath"
+
+    if ($Visibility -eq "private") {
+        $token = Get-LicenseToken
+        if (-not $token) {
+            Write-Log "  [$Repo] Premium/zart modul - nincs ervenyes token (RTS_LICENSE_TOKEN vagy -LicenseToken), kihagyva." "WARN"
+            return $false
+        }
+        # Token beagyazva az URL-be csak erre a klonozasra - nem naplozzuk a tokent
+        $url = "https://$token@github.com/$Repo.git"
+        Write-Log "Git klónozás (premium, tokennel): $GithubBase/$Repo.git → $TargetPath"
+    } else {
+        Write-Log "Git klónozás: $url → $TargetPath"
+    }
+
     $result = git clone $url $TargetPath 2>&1
     if ($LASTEXITCODE -eq 0) {
         return $true
     } else {
-        Write-Log "Git klónozás sikertelen: $result" "ERROR"
+        $safeResult = $result -replace 'https://[^@]+@', 'https://***@'
+        Write-Log "Git klónozás sikertelen: $safeResult" "ERROR"
         return $false
     }
 }
@@ -203,12 +240,14 @@ foreach ($mod in $modules) {
     Write-Log "[$($mod.name)] Telepítés folyamatban... ($($mod.repo))"
     Write-Log "  Leírás: $($mod.description)"
 
+    $visibility = if ($mod.visibility) { $mod.visibility } else { "public" }
+
     $success = $false
     if ($gitAvailable) {
-        $success = Install-ModuleViaGit -Repo $mod.repo -TargetPath $targetPath
+        $success = Install-ModuleViaGit -Repo $mod.repo -TargetPath $targetPath -Visibility $visibility
     }
-    # Git fallback: ZIP
-    if (-not $success) {
+    # Git fallback: ZIP - csak publikus moduloknal (a ZIP-es letoltes nem tamogat tokent)
+    if (-not $success -and $visibility -ne "private") {
         $success = Install-ModuleViaZip -Repo $mod.repo -TargetPath $targetPath -ModuleName $mod.name
     }
 

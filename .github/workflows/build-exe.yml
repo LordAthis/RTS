@@ -1,0 +1,57 @@
+name: Build RTS.exe
+
+# HU: Ez a workflow buildeli az RTS WPF alkalmazast (src/RTS.csproj) Windows
+#     runneren, es letrehoz egy futtathato, egyfajlos RTS.exe-t. Minden
+#     push-nal build-ellenorzest futtat, tag push-nal (pl. v0.1.0) pedig
+#     GitHub Release-t is keszit a lefordult exe-vel.
+# EN: This workflow builds the RTS WPF app (src/RTS.csproj) on a Windows
+#     runner and produces a runnable, single-file RTS.exe. Every push runs
+#     a build check; pushing a tag (e.g. v0.1.0) also creates a GitHub
+#     Release with the built exe attached.
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*.*.*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore src/RTS.csproj
+
+      - name: Publish (single-file, self-contained, win-x64)
+        run: >
+          dotnet publish src/RTS.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o publish/win-x64
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RTS-win-x64
+          path: publish/win-x64/RTS.exe
+          if-no-files-found: error
+
+      - name: Create GitHub Release (csak tag push eseten / tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/win-x64/RTS.exe
+          generate_release_notes: true

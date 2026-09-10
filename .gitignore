@@ -40,3 +40,7 @@ project.lock.json
 /TMP/
 /Temp/
 /temp/
+
+## RTS licenc/token - SOHA ne keruljon be a repoba
+license.local.json
+/logs/
