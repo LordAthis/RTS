@@ -94,6 +94,12 @@ namespace RTS
                     LogToConsole("Hálózati modul előkészítése...");
                     break;
 
+                case "BtnModules":
+                    var modulesView = new ModulesView();
+                    MainContentArea.Content = modulesView;
+                    TxtInfo.Text = "Modul: Osszes modul";
+                    break;
+
                 case "BtnHome":
                     MainContentArea.Content = null;
                     TxtInfo.Text = "Rendszer készenlétben...";

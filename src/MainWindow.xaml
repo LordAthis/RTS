@@ -139,6 +139,7 @@
                     <Button x:Name="BtnRTS" Content="F1" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
                     <Button x:Name="BtnIWS" Content="📦 IWS" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
                     <Button x:Name="BtnNet" Content="🌐 NET" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
+                    <Button x:Name="BtnModules" Content="🗂 MOD" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0" Click="Module_Click"/>
                 </StackPanel>
             </StackPanel>
         </Canvas>

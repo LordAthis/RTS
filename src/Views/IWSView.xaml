@@ -3,19 +3,38 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Margin="15">
         <StackPanel>
-            <TextBlock Text="IWS - Telepítés és Biztonsági Protokollok" Foreground="{DynamicResource SecondaryNeon}" FontSize="16" Margin="0,0,0,20"/>
-            
-            <WrapPanel x:Name="ButtonsPanel">
-                <Button Content="Szoftverek (Winget)" Tag="7,8,10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
-                
-                <Button Content="Windows Debloat" Tag="10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
+            <TextBlock Text="IWS - Telepites es Biztonsagi Protokollok" Foreground="{DynamicResource SecondaryNeon}" FontSize="16" Margin="0,0,0,20"/>
 
-                <Button Content="UAC Hardening" Tag="7,8,10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
-                <Button Content="SMBv1/NetBIOS Tiltás" Tag="XP,7,8,10,11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
-                <Button Content="Win11 Fixes" Tag="11" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
-                
-                <Button Content="Zsarolóvírus védelem" Tag="10,11" Opacity="0.4" Style="{StaticResource NeonButtonStyle}" Width="160" Height="50" Margin="5" Click="BtnExecute"/>
+            <!-- A gombok az IWS repo (LordAthis/IWS) scripts\ mappajaban tenylegesen
+                 letezo szkriptekre mutatnak, a CommandParameter tartalmazza a modulon
+                 beluli relativ utvonalat, amit a ModuleRunner futtat. -->
+            <WrapPanel x:Name="ButtonsPanel">
+                <Button Content="Core Hardening (ASR+VBS)" Tag="XP,7,8,10,11"
+                        CommandParameter="scripts\harden-windows-core.ps1"
+                        Style="{StaticResource NeonButtonStyle}" Width="180" Height="50" Margin="5" Click="BtnExecute"/>
+
+                <Button Content="Quad9 + DoH beallitas" Tag="7,8,10,11"
+                        CommandParameter="scripts\set-quad9-doh.ps1"
+                        Style="{StaticResource NeonButtonStyle}" Width="180" Height="50" Margin="5" Click="BtnExecute"/>
+
+                <Button Content="USB tarolo blokkolas" Tag="XP,7,8,10,11"
+                        CommandParameter="scripts\usb-restriction.ps1"
+                        Style="{StaticResource NeonButtonStyle}" Width="180" Height="50" Margin="5" Click="BtnExecute"/>
+
+                <Button Content="Bongeszo megerositese" Tag="7,8,10,11"
+                        CommandParameter="scripts\browser-hardening.ps1"
+                        Style="{StaticResource NeonButtonStyle}" Width="180" Height="50" Margin="5" Click="BtnExecute"/>
+
+                <Button Content="Autoruns ellenorzes" Tag="XP,7,8,10,11"
+                        CommandParameter="scripts\check-autoruns.ps1"
+                        Style="{StaticResource NeonButtonStyle}" Width="180" Height="50" Margin="5" Click="BtnExecute"/>
+
+                <Button Content="TELJES TELEPITES (mindent sorban)" Tag="XP,7,8,10,11"
+                        CommandParameter="scripts\install-hardening.ps1"
+                        Style="{StaticResource NeonButtonStyle}" Width="180" Height="50" Margin="5" Click="BtnExecute"/>
             </WrapPanel>
+
+            <TextBlock Text="Minden script uj PowerShell ablakban indul - az RTS mar admin modban fut." Foreground="Gray" FontSize="11" FontStyle="Italic" Margin="5,15,0,0"/>
         </StackPanel>
     </Grid>
 </UserControl>

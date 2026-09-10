@@ -1,11 +1,14 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Linq;
+using RTS.Services;
 
 namespace RTS.Views
 {
     public partial class IWSView : UserControl
     {
+        private const string ModuleName = "IWS";
+
         public IWSView() { InitializeComponent(); }
 
         public void ApplyOSFilter(string os)
@@ -24,14 +27,23 @@ namespace RTS.Views
         {
             var btn = (Button)sender;
             var mainWin = (MainWindow)Application.Current.MainWindow;
-            
-            if (btn.Opacity < 1) {
-                mainWin.LogToConsole($"[HAMAROSAN] {btn.Content} funkció még fejlesztés alatt.");
+            string? scriptPath = btn.CommandParameter as string;
+
+            if (string.IsNullOrWhiteSpace(scriptPath))
+            {
+                mainWin.LogToConsole($"[{ModuleName}] Nincs beallitva script ehhez a gombhoz.");
                 return;
             }
 
-            mainWin.LogToConsole($"Végrehajtás: {btn.Content} (Cél-OS: {mainWin.SelectedOS})");
-            // Itt hívjuk meg az IWS repó megfelelő fájlját
+            if (!ModuleRunner.ModuleInstalled(ModuleName))
+            {
+                mainWin.LogToConsole($"[{ModuleName}] Nincs telepitve - futtasd eloszor a bootstrap.ps1-et (hianyzik: Apps\\{ModuleName}).");
+                return;
+            }
+
+            mainWin.LogToConsole($"Vegrehajtas: {btn.Content} (Cel-OS: {mainWin.SelectedOS})");
+            var result = ModuleRunner.RunScript(ModuleName, scriptPath);
+            mainWin.LogToConsole(result.Message);
         }
     }
 }
