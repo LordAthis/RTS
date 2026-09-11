@@ -4,6 +4,10 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using RTS.Models;
 using RTS.Services;
+// A "MenuItem" nev utkozik a System.Windows.Controls.MenuItem-mel (WPF
+// beepitett menupont-vezerlo), ezert a sajat rts-menu.json modellt mindig
+// ezzel az explicit aliasszal hasznaljuk, sosem csupasz "MenuItem"-kent.
+using RtsMenuItem = RTS.Models.MenuItem;
 
 namespace RTS.Views
 {
@@ -100,7 +104,7 @@ namespace RTS.Views
                 if (child is not WrapPanel wrap) continue;
                 foreach (var w in wrap.Children)
                 {
-                    if (w is not Button btn || btn.Tag is not MenuItem item) continue;
+                    if (w is not Button btn || btn.Tag is not RtsMenuItem item) continue;
                     bool supported = item.Os.Contains(os) || (item.OsOverrides?.ContainsKey(os) ?? false);
                     btn.Visibility = supported ? Visibility.Visible : Visibility.Collapsed;
                 }
@@ -110,7 +114,7 @@ namespace RTS.Views
         private void Btn_Click(object sender, RoutedEventArgs e)
         {
             var btn = (Button)sender;
-            var item = (MenuItem)btn.Tag;
+            var item = (RtsMenuItem)btn.Tag;
             var mainWin = (MainWindow)Application.Current.MainWindow;
 
             if (!ModuleRunner.ModuleInstalled(_moduleName))
