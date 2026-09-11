@@ -96,6 +96,29 @@ function Get-LicenseToken {
     return $null
 }
 
+function Remove-NonWindowsDirs {
+    param([string]$TargetPath, [string]$ModuleName)
+    # Ha a modul rts-repo.json-ja "cleanup_dirs"-t deklaral (pl. linux, mac),
+    # ezeket a mappakat toroljuk letoltes utan - csak mas platformnak
+    # kellenenek, feleslegesen foglalnanak helyet. Ez FUGGETLEN attol, hogy
+    # a modulnak van-e mar rts-menu.json-ja (gomb-szintu menu).
+    $repoConfigPath = Join-Path $TargetPath "rts-repo.json"
+    if (-not (Test-Path $repoConfigPath)) { return }
+    try {
+        $repoConfig = Get-Content $repoConfigPath -Raw | ConvertFrom-Json
+        if (-not $repoConfig.cleanup_dirs) { return }
+        foreach ($dir in $repoConfig.cleanup_dirs) {
+            $fullDir = Join-Path $TargetPath $dir
+            if (Test-Path $fullDir) {
+                Remove-Item $fullDir -Recurse -Force -ErrorAction SilentlyContinue
+                Write-Log "[$ModuleName] Nem-Windows mappa torolve: $dir" "OK"
+            }
+        }
+    } catch {
+        Write-Log "[$ModuleName] Figyelmeztetes: cleanup_dirs feldolgozasa nem sikerult - $_" "WARN"
+    }
+}
+
 function Install-ModuleViaGit {
     param([string]$Repo, [string]$TargetPath, [string]$Visibility = "public")
 
@@ -252,6 +275,7 @@ foreach ($mod in $modules) {
     }
 
     if ($success) {
+        Remove-NonWindowsDirs -TargetPath $targetPath -ModuleName $mod.name
         Write-Log "[$($mod.name)] Telepítve!" "OK"
         $results.success++
     } else {

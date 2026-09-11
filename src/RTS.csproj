@@ -6,7 +6,16 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms> <!-- FolderBrowserDialog-hoz (elso-inditasi telepito) -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <RootNamespace>RTS</RootNamespace>
     <AssemblyName>RTS</AssemblyName>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Az .ico-t WPF-eroforraskent is bevonjuk, hogy a Window.Icon (pack URI)
+         is fel tudja oldani - az ApplicationIcon fentebb csak az .exe fajl
+         sajat ikonjat allitja be (Intezo/taskbar), ez pedig a WPF ablak
+         sajat ikonjat (Alt+Tab, ablak bal felso sarka). -->
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
 </Project>

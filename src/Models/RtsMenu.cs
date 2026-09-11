@@ -16,6 +16,22 @@ namespace RTS.Models
         public List<MenuCategory> Categories { get; set; } = new();
     }
 
+    // Kulon, konnyu konfig (Apps\<Modul>\rts-repo.json) - SZANDEKOSAN nem
+    // resze az RtsMenu-nek: ez a letoltes/telepites viselkedeset szabalyozza
+    // (pl. csak a Windows-ag maradjon meg egy tobb-platformos repobol), nem
+    // fugg attol, hogy a modulnak van-e mar gomb-szintu rts-menu.json-ja.
+    // Igy egy modul kaphat cleanup_dirs-t meg mielott elkeszulne a teljes
+    // gomb-szintu menuje, anelkul, hogy ez befolyasolna, hogyan nyilik meg
+    // az RTS-ben (lasd ModuleMenuCatalog.HasMenu).
+    public class RtsRepoConfig
+    {
+        // Azoknak a repo-gyoker-mappaknak a listaja, amik CSAK mas
+        // platformnak (nem Windows-nak) kellenek - pl. "linux", "mac" -
+        // ezeket a telepito/bootstrap letoltes utan torli.
+        [JsonPropertyName("cleanup_dirs")]
+        public List<string>? CleanupDirs { get; set; }
+    }
+
     public class MenuCategory
     {
         [JsonPropertyName("name")]
@@ -35,6 +51,14 @@ namespace RTS.Models
 
         [JsonPropertyName("description")]
         public string Description { get; set; } = "";
+
+        // Opcionalis: relativ ut egy .md fajlhoz (a modul mappajan belul),
+        // ami a tetel reszletes leirasat tartalmazza - EGY kattintasra ezt
+        // mutatjuk meg (nem futtatunk semmit), csak DUPLA kattintasra fut
+        // ténylegesen a tetel. Ha ures, az alapertelmezett konvenciot
+        // hasznaljuk: "rts-info/<id>.md".
+        [JsonPropertyName("info_path")]
+        public string InfoPath { get; set; } = "";
 
         // "script" (ps1/bat - a kimenet befogva, az RTS sajat log-paneljebe folyik)
         // "shell"  (kozvetlen parancs/CLSID/shell: URI - sajat ablakot/dialogust nyit)

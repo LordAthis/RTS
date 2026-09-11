@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using RTS.Models;
 using RTS.Services;
@@ -77,7 +78,7 @@ namespace RTS.Views
                     var btn = new Button
                     {
                         Content = label,
-                        ToolTip = string.IsNullOrWhiteSpace(item.Description) ? item.Name : item.Description,
+                        ToolTip = "1 kattintas: leiras. Dupla kattintas: futtatas.",
                         Style = (Style)Application.Current.Resources["NeonButtonStyle"],
                         Width = 210,
                         MinHeight = 46,
@@ -85,7 +86,11 @@ namespace RTS.Views
                         Margin = new Thickness(0, 0, 8, 8),
                         Tag = item
                     };
-                    btn.Click += Btn_Click;
+                    // Nem a sima Click eseményt hasznaljuk: EGY kattintasra csak a
+                    // tetel .md leirasat mutatjuk (nem futtatunk semmit), CSAK dupla
+                    // kattintasra hajtjuk vegre tenylegesen - igy a felhasznalo elobb
+                    // lathatja, mit csinal egy gomb, mielott futtatna.
+                    btn.PreviewMouseLeftButtonDown += Btn_PreviewMouseLeftButtonDown;
                     wrap.Children.Add(btn);
                 }
                 CategoriesPanel.Children.Add(wrap);
@@ -111,12 +116,25 @@ namespace RTS.Views
             }
         }
 
-        private void Btn_Click(object sender, RoutedEventArgs e)
+        private void Btn_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             var btn = (Button)sender;
             var item = (RtsMenuItem)btn.Tag;
             var mainWin = (MainWindow)Application.Current.MainWindow;
 
+            if (e.ClickCount >= 2)
+            {
+                RunItem(mainWin, item);
+            }
+            else
+            {
+                string info = ModuleMenuCatalog.LoadItemInfo(_moduleName, item);
+                mainWin.SetInfoText(info);
+            }
+        }
+
+        private void RunItem(MainWindow mainWin, RtsMenuItem item)
+        {
             if (!ModuleRunner.ModuleInstalled(_moduleName))
             {
                 mainWin.LogToConsole($"[{_moduleName}] Nincs telepitve - futtasd eloszor a telepitest (F1 -> Modulok ujratelepitese, vagy bootstrap.ps1).");

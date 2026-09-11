@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="RTS" Height="650" Width="1100"
-        MinHeight="500" MinWidth="820"
+        Icon="Assets/app.ico"
+        MinHeight="560" MinWidth="960"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -25,9 +26,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -54,8 +55,8 @@
     <Grid>
         <!-- FŐ KERET -->
         <Border x:Name="MainBorder" CornerRadius="20"
-                Background="{DynamicResource MainBgBrush}" 
-                BorderBrush="#222" BorderThickness="2" 
+                Background="{DynamicResource MainBgBrush}"
+                BorderBrush="#222" BorderThickness="2"
                 Panel.ZIndex="0"
                 Margin="20,45,20,20">
 
@@ -71,8 +72,8 @@
 
                 <!-- BAL OLDAL (fő tartalom) -->
                 <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
-                    <Border x:Name="A1_LoadingBorder" Height="70" Background="#111" CornerRadius="12" BorderBrush="#222" BorderThickness="2">
-                        <TextBlock x:Name="TxtInfo" Text="Rendszer készenlétben..." Foreground="Gray" Margin="15" VerticalAlignment="Center" FontSize="14" FontStyle="Italic"/>
+                    <Border x:Name="A1_LoadingBorder" MinHeight="70" Background="#111" CornerRadius="12" BorderBrush="#222" BorderThickness="2">
+                        <TextBlock x:Name="TxtInfo" Text="Rendszer készenlétben..." Foreground="Gray" Margin="15" VerticalAlignment="Center" FontSize="14" FontStyle="Italic" TextWrapping="Wrap"/>
                     </Border>
                     <Border x:Name="A2_Area" Height="460" Margin="0,15,0,0" Background="#0A0A0A" CornerRadius="12" BorderBrush="#222" BorderThickness="1">
                         <ContentControl x:Name="MainContentArea"/>
@@ -100,58 +101,89 @@
                         </ScrollViewer>
                     </Border>
 
-                    <!-- jobb alsó kis gombok (GH W L) -->
+                    <!-- jobb alsó kis gombok: LOG mentés + GitHub/Blog/LinkedIn ikonok -->
                     <Grid Grid.Row="3" VerticalAlignment="Bottom">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="BtnGH" Content="GH" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
-                                    ToolTip="GitHub repo megnyitasa" Click="BtnGH_Click"/>
-                            <Button x:Name="BtnWeb" Content="W" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
-                                    ToolTip="Weboldal/blog (hamarosan)"/>
-                            <Button x:Name="BtnLn" Content="L" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
-                                    ToolTip="LinkedIn/kozosseg (hamarosan)"/>
+                            <Button x:Name="BtnSaveLog" Style="{StaticResource NeonButtonStyle}" MinWidth="60" Height="35" Margin="2"
+                                    ToolTip="Log mentese fajlba (C:\Program Files\RTS\LOG)" Click="BtnSaveLog_Click">
+                                <TextBlock Text="💾 LOG" FontSize="12"/>
+                            </Button>
+                            <Button x:Name="BtnGH" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
+                                    ToolTip="GitHub repo megnyitasa" Click="BtnGH_Click">
+                                <Border Width="20" Height="20" CornerRadius="10" Background="#00FF41">
+                                    <TextBlock Text="GH" FontSize="8" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Button>
+                            <Button x:Name="BtnWeb" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
+                                    ToolTip="Blog megnyitasa (lordathis.blogspot.com)" Click="BtnWeb_Click">
+                                <Border Width="20" Height="20" CornerRadius="10" Background="#FF7A1A">
+                                    <TextBlock Text="B" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Button>
+                            <Button x:Name="BtnLn" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
+                                    ToolTip="LinkedIn (hamarosan - meg nincs megadva a link)">
+                                <Border Width="20" Height="20" CornerRadius="4" Background="#0A66C2">
+                                    <TextBlock Text="in" FontSize="9" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Button>
                         </StackPanel>
                     </Grid>
                 </Grid>
             </Grid>
         </Border>
 
-        <!-- FEJLÉC (kilóg felül) – most már XP, 7, 10, 11 gombokkal -->
-        <Canvas VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="68" 
-                Margin="30,-12,30,0" Panel.ZIndex="2" IsHitTestVisible="True">
-            <StackPanel Orientation="Horizontal" Canvas.Left="10" Margin="0,40,0,0">
+        <!-- FEJLÉC (kilóg felül) – Grid alapú, dinamikusan alkalmazkodik az ablak
+             szélességéhez (a * oszlopok nyelik el a felesleges helyet), nincs
+             tobbe fix "holt ter" a szelso elemek korul. -->
+        <Grid VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="68"
+              Margin="30,-12,30,0" Panel.ZIndex="2" IsHitTestVisible="True">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Bal csoport: Home + OS-valaszto -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0">
                 <Button x:Name="BtnHome" Content="🏠" Style="{StaticResource NeonButtonStyle}" Width="45" Height="45"
                         ToolTip="Fooldal" Click="Module_Click"/>
 
-                <!-- OS választó gombok -->
-                <Border Background="#1A1A1A" CornerRadius="12" Padding="5" Margin="10,0" BorderBrush="#333" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,37,0">
-                        <Button x:Name="BtnXP"   Content="XP"  Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows XP" Click="Module_Click"/>
-                        <Button x:Name="BtnWin7" Content="7"   Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows 7" Click="Module_Click"/>
-                        <Button x:Name="BtnWin10" Content="10" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows 10" Click="Module_Click"/>
-                        <Button x:Name="BtnWin11" Content="11" Style="{StaticResource NeonButtonStyle}" Width="35" Margin="2" ToolTip="Cel-OS: Windows 11" Click="Module_Click"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Background="Black" CornerRadius="15" Padding="20,5" BorderBrush="#444" BorderThickness="1" Margin="20,0">
+                <Border Background="#1A1A1A" CornerRadius="12" Padding="5" Margin="10,0,0,0" BorderBrush="#333" BorderThickness="1">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="NEXUS" Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="35"/>
-                        <TextBlock Text="Bit&amp;Chip s.r.o.    " Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="20"/>
+                        <Button x:Name="BtnXP"   Content="XP"  Style="{StaticResource NeonButtonStyle}" MinWidth="35" Margin="2" ToolTip="Cel-OS: Windows XP" Click="Module_Click"/>
+                        <Button x:Name="BtnWin7" Content="7"   Style="{StaticResource NeonButtonStyle}" MinWidth="35" Margin="2" ToolTip="Cel-OS: Windows 7" Click="Module_Click"/>
+                        <Button x:Name="BtnWin10" Content="10" Style="{StaticResource NeonButtonStyle}" MinWidth="35" Margin="2" ToolTip="Cel-OS: Windows 10" Click="Module_Click"/>
+                        <Button x:Name="BtnWin11" Content="11" Style="{StaticResource NeonButtonStyle}" MinWidth="35" Margin="2" ToolTip="Cel-OS: Windows 11" Click="Module_Click"/>
                     </StackPanel>
                 </Border>
-
-                <!-- Modul gombok jobbra -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,37,0">
-                    <Button x:Name="BtnRTS" Content="F1" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
-                            ToolTip="Gyorsindito (hamarosan)" Click="Module_Click"/>
-                    <Button x:Name="BtnIWS" Content="📦 IWS" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
-                            ToolTip="IWS - Biztonsagi hardening modul" Click="Module_Click"/>
-                    <Button x:Name="BtnNet" Content="🌐 NET" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
-                            ToolTip="Halozati eszkozok (hamarosan)" Click="Module_Click"/>
-                    <Button x:Name="BtnModules" Content="🗂 MOD" Style="{StaticResource NeonButtonStyle}" Width="85" Margin="3,0"
-                            ToolTip="Osszes modul listaja es futtatasa" Click="Module_Click"/>
-                </StackPanel>
             </StackPanel>
-        </Canvas>
+
+            <!-- Cim, kozepen (a *-*oszlopok kozott, mindig kozepen marad) -->
+            <Border Grid.Column="2" Background="Black" CornerRadius="15" Padding="20,5" BorderBrush="#444" BorderThickness="1" VerticalAlignment="Bottom">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="NEXUS" Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="35"/>
+                    <TextBlock Text="Bit&amp;Chip s.r.o." Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="20" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Jobb csoport: modul gyorsgombok (F1, WRT, STP, IWS, NET, MOD) -->
+            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,10,0">
+                <Button x:Name="BtnRTS" Content="F1" Style="{StaticResource NeonButtonStyle}" MinWidth="50" Margin="3,0"
+                        ToolTip="Rendszerinfo es gyorsinditó" Click="Module_Click"/>
+                <Button x:Name="BtnWRT" Content="WRT" Style="{StaticResource NeonButtonStyle}" MinWidth="50" Margin="3,0"
+                        ToolTip="WinRegTools" Click="Module_Click"/>
+                <Button x:Name="BtnSTP" Content="STP" Style="{StaticResource NeonButtonStyle}" MinWidth="50" Margin="3,0"
+                        ToolTip="SetUpER" Click="Module_Click"/>
+                <Button x:Name="BtnIWS" Content="📦 IWS" Style="{StaticResource NeonButtonStyle}" MinWidth="70" Margin="3,0"
+                        ToolTip="IWS - Biztonsagi hardening modul" Click="Module_Click"/>
+                <Button x:Name="BtnNet" Content="🌐 NET" Style="{StaticResource NeonButtonStyle}" MinWidth="70" Margin="3,0"
+                        ToolTip="Halozati eszkozok" Click="Module_Click"/>
+                <Button x:Name="BtnModules" Content="🗂 MOD" Style="{StaticResource NeonButtonStyle}" MinWidth="70" Margin="3,0"
+                        ToolTip="Osszes modul listaja es futtatasa" Click="Module_Click"/>
+            </StackPanel>
+        </Grid>
 
         <!-- BAL ALSÓ SAROK – lebegő gombok (theme + exit) -->
         <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="45,0,0,28" Panel.ZIndex="3">

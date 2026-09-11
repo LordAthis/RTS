@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -7,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using Microsoft.Win32;
 using RTS.Services;
 using RTS.Views;   // IWSView miatt
 
@@ -143,11 +145,124 @@ namespace RTS
             TxtInfo.Text = infoText;
         }
 
+        // Csak a felso info-savot frissiti (pl. egy menu-tetel .md leirasat
+        // mutatja egy kattintasra), a fo tartalom (MainContentArea) valtozatlan
+        // marad - lasd ModuleMenuView egykattintas=info logikaja.
+        public void SetInfoText(string text)
+        {
+            TxtInfo.Text = text;
+        }
+
         public void LogToConsole(string message)
         {
             string time = DateTime.Now.ToString("HH:mm:ss");
-            TxtLog.Text += $"[{time}] {message}\n";
+            string line = $"[{time}] {message}";
+            TxtLog.Text += line + "\n";
             LogScroller.ScrollToBottom();
+            AppendToRollingLogFile(line);
+        }
+
+        // ─────────────────────────────────────────────
+        //  HATTER-LOG: minden LogToConsole-hivas emellett egy napi
+        //  gorgetheto fajlba is bekerul (<gyoker>\LOG\rts-YYYY-MM-DD.log),
+        //  hogy utolag is lathato legyen, mi tortent a hatterben - akkor
+        //  is, ha a felhasznalo nem menti el kezzel a LOG gombbal.
+        //  Hibat sose dob tovabb - ez csak kiegeszito naplozas.
+        // ─────────────────────────────────────────────
+        private void AppendToRollingLogFile(string line)
+        {
+            try
+            {
+                string root = ModuleRunner.FindRtsRoot();
+                string logDir = Path.Combine(root, "LOG");
+                Directory.CreateDirectory(logDir);
+                string logFile = Path.Combine(logDir, $"rts-{DateTime.Now:yyyy-MM-dd}.log");
+                File.AppendAllText(logFile, line + Environment.NewLine);
+            }
+            catch
+            {
+                // szandekosan elnyelve - a hatter-naplozas hibaja ne akassza meg az UI-t
+            }
+        }
+
+        private void BtnSaveLog_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string root = ModuleRunner.FindRtsRoot();
+                string logDir = Path.Combine(root, "LOG");
+                Directory.CreateDirectory(logDir);
+
+                var dlg = new SaveFileDialog
+                {
+                    InitialDirectory = logDir,
+                    FileName = $"rts-log-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+                    Filter = "Szoveges fajl (*.txt)|*.txt|Minden fajl (*.*)|*.*"
+                };
+                if (dlg.ShowDialog() == true)
+                {
+                    File.WriteAllText(dlg.FileName, TxtLog.Text);
+                    LogToConsole($"Log elmentve: {dlg.FileName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToConsole("Hiba a log mentesekor: " + ex.Message);
+            }
+        }
+
+        private void BtnWeb_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "https://lordathis.blogspot.com",
+                    UseShellExecute = true
+                });
+                LogToConsole("Blog megnyitasa...");
+            }
+            catch (Exception ex)
+            {
+                LogToConsole("Hiba a bongeszo inditasakor: " + ex.Message);
+            }
+        }
+
+        // Kozos logika a fejlec-gyorsgombokhoz (IWS, NET, WRT, STP, ...):
+        // ha van rts-menu.json a modulhoz, azt nyitja meg a sajat feluleten
+        // belul; ha nincs telepitve, egyertelmu uzenetet ir; ha telepitve
+        // van de meg nincs gomb-szintu menuje, vegso esetkent a modul sajat
+        // teljes belepesi pontjat inditja (kulon ablakban).
+        private void OpenModuleQuick(string moduleName, string infoLabel)
+        {
+            TxtInfo.Text = infoLabel;
+
+            if (ModuleMenuCatalog.HasMenu(moduleName))
+            {
+                var menuView = new Views.ModuleMenuView(moduleName);
+                MainContentArea.Content = menuView;
+                menuView.ApplyOSFilter(SelectedOS);
+                return;
+            }
+
+            if (!ModuleRunner.ModuleInstalled(moduleName))
+            {
+                MainContentArea.Content = null;
+                LogToConsole($"[{moduleName}] Nincs telepitve - nyisd meg a MOD nezetet, vagy varj a telepites vegere.");
+                return;
+            }
+
+            MainContentArea.Content = null;
+            var module = ModuleCatalog.Load().Find(m => m.Name == moduleName);
+            string entry = module?.EntryPoint ?? "";
+            if (string.IsNullOrWhiteSpace(entry))
+            {
+                LogToConsole($"[{moduleName}] Nincs beallitva belepesi pont a modules.json-ban.");
+                return;
+            }
+            LogToConsole($"[{moduleName}] Meg nincs gomb-szintu menuje ebben a korben - a modul sajat teljes menuje nyilik meg, kulon ablakban.");
+            var result = ModuleRunner.Run(moduleName, entry);
+            LogToConsole(result.Message);
         }
 
         private void Module_Click(object sender, RoutedEventArgs e)
@@ -164,49 +279,31 @@ namespace RTS
                     break;
 
                 case "BtnIWS":
-                    // Uj, egyseges menu-nezet, ha van rts-menu.json a modulhoz;
-                    // kulonben visszaesunk a regi, kezzel irt IWSView-ra.
-                    if (ModuleMenuCatalog.HasMenu("IWS"))
-                    {
-                        var iwsMenuView = new Views.ModuleMenuView("IWS");
-                        MainContentArea.Content = iwsMenuView;
-                        iwsMenuView.ApplyOSFilter(SelectedOS);
-                    }
-                    else
+                    // Ha meg nincs rts-menu.json (nem varhato, mar van), a regi,
+                    // kezzel irt IWSView-ra esunk vissza kompatibilitasi okbol.
+                    if (!ModuleMenuCatalog.HasMenu("IWS") && ModuleRunner.ModuleInstalled("IWS"))
                     {
                         var iwsView = new IWSView();
                         MainContentArea.Content = iwsView;
                         iwsView.ApplyOSFilter(SelectedOS);
-                    }
-                    TxtInfo.Text = "Modul: IWS - Telepítés és Biztonság";
-                    break;
-
-                case "BtnNet":
-                    TxtInfo.Text = "Modul: Halozat (Network-Tools)";
-                    if (!ModuleRunner.ModuleInstalled("Network-Tools"))
-                    {
-                        MainContentArea.Content = null;
-                        LogToConsole("[Network-Tools] Nincs telepitve - nyisd meg a MOD nezetet, vagy varj a telepites vegere.");
-                    }
-                    else if (ModuleMenuCatalog.HasMenu("Network-Tools"))
-                    {
-                        // Ha kesobb keszul rts-menu.json a Network-Tools-hoz, automatikusan
-                        // a beepitett, gomb-szintu menut hasznaljuk a kulon ablak helyett.
-                        var netMenuView = new Views.ModuleMenuView("Network-Tools");
-                        MainContentArea.Content = netMenuView;
-                        netMenuView.ApplyOSFilter(SelectedOS);
+                        TxtInfo.Text = "Modul: IWS - Telepítés és Biztonság";
                     }
                     else
                     {
-                        // Egyelore nincs rts-menu.json a Network-Tools-hoz (nem volt resze
-                        // ennek a kornek) - a teljes sajat menujet nyitjuk meg, vegso esetkent.
-                        MainContentArea.Content = null;
-                        var netModule = ModuleCatalog.Load().Find(m => m.Name == "Network-Tools");
-                        string netEntry = netModule?.EntryPoint ?? "win\\Launcher.ps1";
-                        LogToConsole("[Network-Tools] Meg nincs gomb-szintu menuje ebben a korben - a modul sajat teljes menuje nyilik meg, kulon ablakban.");
-                        var netResult = ModuleRunner.Run("Network-Tools", netEntry);
-                        LogToConsole(netResult.Message);
+                        OpenModuleQuick("IWS", "Modul: IWS - Telepítés és Biztonság");
                     }
+                    break;
+
+                case "BtnNet":
+                    OpenModuleQuick("Network-Tools", "Modul: Halozat (Network-Tools)");
+                    break;
+
+                case "BtnWRT":
+                    OpenModuleQuick("WinRegTools", "Modul: WinRegTools (WRT)");
+                    break;
+
+                case "BtnSTP":
+                    OpenModuleQuick("SetUpER", "Modul: SetUpER (STP)");
                     break;
 
                 case "BtnModules":

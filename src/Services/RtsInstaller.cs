@@ -128,10 +128,44 @@ namespace RTS.Services
                 log($"[{mod.Name}] Telepites: {mod.Repo}");
                 bool ok = gitAvailable && CloneViaGit(mod.Repo, targetPath, log);
                 if (!ok) ok = DownloadZip(mod.Repo, targetPath, mod.Name, log);
+                if (ok) CleanupNonWindowsDirs(targetPath, mod.Name, log);
                 log(ok ? $"[{mod.Name}] Kesz." : $"[{mod.Name}] SIKERTELEN.");
             }
 
             log("Telepites kesz. A Modulok nezetet erdemes ujranyitni a friss allapothoz.");
+        }
+
+        // Ha a friss letoltott modul rts-repo.json-ja "cleanup_dirs"-t deklaral
+        // (pl. ["linux","mac"]), azokat a mappakat torli a letoltott modulbol -
+        // ezek csak mas platformnak kellenenek, feleslegesen foglalnak helyet.
+        // Igy pl. egy win/linux mappaszerkezetu repobol csak a Windows-agat
+        // tartjuk meg a telepites utan. Ez FUGGETLEN attol, hogy a modulnak
+        // van-e mar rts-menu.json-ja.
+        private static void CleanupNonWindowsDirs(string targetPath, string moduleName, Action<string> log)
+        {
+            try
+            {
+                string repoConfigPath = Path.Combine(targetPath, "rts-repo.json");
+                if (!File.Exists(repoConfigPath)) return;
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var config = JsonSerializer.Deserialize<RtsRepoConfig>(File.ReadAllText(repoConfigPath), options);
+                if (config?.CleanupDirs == null || config.CleanupDirs.Count == 0) return;
+
+                foreach (var dir in config.CleanupDirs)
+                {
+                    string fullDir = Path.Combine(targetPath, dir);
+                    if (Directory.Exists(fullDir))
+                    {
+                        Directory.Delete(fullDir, true);
+                        log($"[{moduleName}] Nem-Windows mappa torolve: {dir}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log($"[{moduleName}] Figyelmeztetes: a felesleges mappak takaritasa nem sikerult - {ex.Message}");
+            }
         }
 
         private static bool IsGitAvailable()
