@@ -38,15 +38,16 @@ namespace RTS.Views
             }
 
             // Keszen levo/engedelyezett modulok elore, a "nincs kesz kod/letiltva"
-            // modulok legalulra kerulnek, es osszecsukva jelennek meg.
+            // modulok legalulra kerulnek, es EGYETLEN kozos "Kinyitas" kapcsolo
+            // mogott jelennek meg osszecsukva - nem modulonkent kulon-kulon.
             var ready = modules.Where(m => m.Enabled).ToList();
             var notReady = modules.Where(m => !m.Enabled).ToList();
 
             foreach (var mod in ready)
                 ModulesPanel.Children.Add(BuildModuleRow(mod));
 
-            foreach (var mod in notReady)
-                ModulesPanel.Children.Add(BuildCollapsedDisabledRow(mod));
+            if (notReady.Count > 0)
+                ModulesPanel.Children.Add(BuildDisabledSection(notReady));
         }
 
         private UIElement BuildModuleRow(ModuleInfo mod)
@@ -125,10 +126,12 @@ namespace RTS.Views
             return row;
         }
 
-        // Osszecsukott sor egy meg nem kesz/letiltott modulhoz: csak annyit
-        // ir ki, hogy "Nincs kesz kod/letiltva", plusz egy "Kinyitas" gombot -
-        // csak arra kattintva jelenik meg a teljes reszlet (nev, leiras).
-        private UIElement BuildCollapsedDisabledRow(ModuleInfo mod)
+        // EGYETLEN kozos szekcio az OSSZES meg nem kesz/letiltott modulnak -
+        // alapertelmezetten csak annyit ir ki, hogy hany ilyen van, plusz egy
+        // "Kinyitas" gomb; csak arra kattintva jelenik meg a teljes lista
+        // (mindegyik modul neve+leirasa). Nem modulonkent kulon-kulon
+        // osszecsukhato - egy kapcsolo mutatja/rejti mindet egyszerre.
+        private UIElement BuildDisabledSection(List<ModuleInfo> notReadyModules)
         {
             var outer = new Border
             {
@@ -138,44 +141,49 @@ namespace RTS.Views
                 CornerRadius = new CornerRadius(10),
                 Margin = new Thickness(0, 0, 0, 8),
                 Padding = new Thickness(12),
-                Opacity = 0.55
+                Opacity = 0.7
             };
 
-            var collapsedPanel = new Grid();
-            collapsedPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            collapsedPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            collapsedPanel.Children.Add(new TextBlock
+            var headerRow = new Grid();
+            headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerRow.Children.Add(new TextBlock
             {
-                Text = "Nincs kész kód / letiltva",
+                Text = $"Nincs kész kód / letiltva ({notReadyModules.Count} db)",
                 Foreground = Brushes.Gray,
                 FontSize = 12,
                 FontStyle = FontStyles.Italic,
                 VerticalAlignment = VerticalAlignment.Center
             });
 
-            var expandedPanel = new StackPanel { Visibility = Visibility.Collapsed };
-            expandedPanel.Children.Add(new TextBlock
+            var listPanel = new StackPanel { Visibility = Visibility.Collapsed, Margin = new Thickness(0, 10, 0, 0) };
+            foreach (var mod in notReadyModules)
             {
-                Text = mod.Name,
-                Foreground = (Brush)Application.Current.Resources["TextBrush"],
-                FontWeight = FontWeights.Bold,
-                FontSize = 14,
-                TextWrapping = TextWrapping.Wrap
-            });
-            expandedPanel.Children.Add(new TextBlock
+                var itemPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+                itemPanel.Children.Add(new TextBlock
+                {
+                    Text = mod.Name,
+                    Foreground = (Brush)Application.Current.Resources["TextBrush"],
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 14,
+                    TextWrapping = TextWrapping.Wrap
+                });
+                itemPanel.Children.Add(new TextBlock
+                {
+                    Text = mod.Description,
+                    Foreground = Brushes.Gray,
+                    FontSize = 11,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 2, 0, 0)
+                });
+                listPanel.Children.Add(itemPanel);
+            }
+            listPanel.Children.Add(new TextBlock
             {
-                Text = mod.Description,
-                Foreground = Brushes.Gray,
-                FontSize = 11,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 2, 0, 0)
-            });
-            expandedPanel.Children.Add(new TextBlock
-            {
-                Text = "Nincs kész, futtatható kód ehhez a modulhoz.",
+                Text = "Egyik fenti modulhoz sincs meg kesz, futtathato kod.",
                 Foreground = Brushes.OrangeRed,
                 FontSize = 10,
-                Margin = new Thickness(0, 4, 0, 0)
+                TextWrapping = TextWrapping.Wrap
             });
 
             var toggleBtn = new Button
@@ -186,16 +194,16 @@ namespace RTS.Views
                 Height = 30
             };
             Grid.SetColumn(toggleBtn, 1);
-            collapsedPanel.Children.Add(toggleBtn);
+            headerRow.Children.Add(toggleBtn);
 
             var container = new StackPanel();
-            container.Children.Add(collapsedPanel);
-            container.Children.Add(expandedPanel);
+            container.Children.Add(headerRow);
+            container.Children.Add(listPanel);
 
             toggleBtn.Click += (s, e) =>
             {
-                bool expand = expandedPanel.Visibility != Visibility.Visible;
-                expandedPanel.Visibility = expand ? Visibility.Visible : Visibility.Collapsed;
+                bool expand = listPanel.Visibility != Visibility.Visible;
+                listPanel.Visibility = expand ? Visibility.Visible : Visibility.Collapsed;
                 toggleBtn.Content = expand ? "Összecsukás" : "Kinyitás";
             };
 
