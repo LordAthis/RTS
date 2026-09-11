@@ -3,22 +3,49 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Windows.Forms;
 using RTS.Models;
 
 namespace RTS.Services
 {
+    // Egy modul frissitesi allapota, amit a CheckForUpdates ad vissza -
+    // ez jeleníti meg a Home/betoltokepernyon es az InfoView-n, hogy hany
+    // modulhoz van ujabb valtozat.
+    public class ModuleUpdateStatus
+    {
+        public string Name { get; set; } = "";
+        public bool Installed { get; set; }
+        public bool HasUpdate { get; set; }
+        public string? LocalCommit { get; set; }
+        public string? RemoteCommit { get; set; }
+        public DateTime? RemoteCommitDate { get; set; }
+        public string? Error { get; set; }
+    }
+
     // Elso-inditasi telepito: ha az RTS.exe maga mellett nem talal modules.json-t,
     // megkerdezi hova telepitse az adatokat (alapertelmezes: C:\Program Files\RTS),
     // letolti a modules.json-t es minden engedelyezett, publikus modult, majd
     // elmenti a valasztott mappat, hogy legkozelebb ne kelljen ujra kerdezni.
+    //
+    // Verzio v0.4.0 - 2026-09-11: COMMIT-ALAPU FRISSITES-ELLENORZES bevezetve.
+    // Korabban egy mar letezo modul-mappat MINDIG kihagyott a telepito/
+    // ujratelepito - sosem nezte meg, hogy kozben frissult-e a repo a
+    // GitHub-on. Ez okozta, hogy a SetUpER 9. korben pusholt javitasai
+    // (ekezet-hiba, uj telepitok) sosem jutottak el egy mar telepitett
+    // peldanyhoz, meg az "Ujratelepites/ellenorzes" gombra kattintva sem.
+    // Mostantol minden telepitett modul mellett egy ".rts-installed.json"
+    // fajl tarolja, PONTOSAN melyik commit lett letoltve - ez hasonlitodik
+    // ossze a GitHub-on levo legfrissebb commit-tal.
     public static class RtsInstaller
     {
         private const string GithubRawModulesUrl = "https://raw.githubusercontent.com/LordAthis/RTS/main/modules.json";
         private const string ConfigDir = "RTS";
         private const string ConfigFile = "install.json";
+        private const string InstallMetaFile = ".rts-installed.json";
 
         private static string ConfigPath =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ConfigDir, ConfigFile);
@@ -121,14 +148,44 @@ namespace RTS.Services
                 string targetPath = Path.Combine(appsDir, mod.Name);
                 if (Directory.Exists(targetPath))
                 {
-                    log($"[{mod.Name}] Mar letezik - kihagyva.");
-                    continue;
+                    // MAR NEM feltetel nelkul kihagyjuk - megnezzuk, van-e
+                    // ujabb commit a GitHub-on a helyben tarolt .rts-installed.json
+                    // alapjan, es ha igen (vagy ha meg nincs meta - regi,
+                    // e funkcio elotti telepites), ujratoltjuk a modult.
+                    var localMeta = ReadInstallMeta(targetPath);
+                    var (remoteSha, remoteDate, remoteErr) = GetLatestRemoteCommit(mod.Repo);
+
+                    if (remoteErr != null)
+                    {
+                        log($"[{mod.Name}] Mar letezik - frissites-ellenorzes sikertelen ({remoteErr}), a meglevo peldany marad.");
+                        continue;
+                    }
+
+                    bool needsUpdate = localMeta == null || !string.Equals(localMeta.Commit, remoteSha, StringComparison.OrdinalIgnoreCase);
+                    if (!needsUpdate)
+                    {
+                        log($"[{mod.Name}] Mar letezik es naprakesz (commit: {ShortSha(remoteSha)}).");
+                        continue;
+                    }
+
+                    log($"[{mod.Name}] Frissites elerheto (helyi: {(localMeta == null ? "ismeretlen (regi telepites)" : ShortSha(localMeta.Commit))} -> uj: {ShortSha(remoteSha)}, {remoteDate:yyyy-MM-dd}) - ujratoltes...");
+                    try { Directory.Delete(targetPath, true); }
+                    catch (Exception ex)
+                    {
+                        log($"[{mod.Name}] HIBA: a regi mappa torlese sikertelen ({ex.Message}) - a frissites kihagyva, kezzel torolheted: {targetPath}");
+                        continue;
+                    }
                 }
 
                 log($"[{mod.Name}] Telepites: {mod.Repo}");
                 bool ok = gitAvailable && CloneViaGit(mod.Repo, targetPath, log);
-                if (!ok) ok = DownloadZip(mod.Repo, targetPath, mod.Name, log);
-                if (ok) CleanupNonWindowsDirs(targetPath, mod.Name, log);
+                string method = ok ? "git" : "";
+                if (!ok) { ok = DownloadZip(mod.Repo, targetPath, mod.Name, log); method = ok ? "zip" : ""; }
+                if (ok)
+                {
+                    CleanupNonWindowsDirs(targetPath, mod.Name, log);
+                    SaveInstallMetaAfterInstall(targetPath, mod.Repo, method, log);
+                }
                 log(ok ? $"[{mod.Name}] Kesz." : $"[{mod.Name}] SIKERTELEN.");
             }
 
@@ -241,6 +298,155 @@ namespace RTS.Services
                 try { File.Delete(tmpZip); } catch { }
                 try { if (Directory.Exists(tmpDir)) Directory.Delete(tmpDir, true); } catch { }
             }
+        }
+
+        // ================= COMMIT-ALAPU FRISSITES-ELLENORZES =================
+
+        private static string ShortSha(string? sha) =>
+            string.IsNullOrEmpty(sha) ? "?" : (sha.Length > 7 ? sha.Substring(0, 7) : sha);
+
+        private static ModuleInstallMeta? ReadInstallMeta(string targetPath)
+        {
+            try
+            {
+                string metaPath = Path.Combine(targetPath, InstallMetaFile);
+                if (!File.Exists(metaPath)) return null;
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                return JsonSerializer.Deserialize<ModuleInstallMeta>(File.ReadAllText(metaPath), options);
+            }
+            catch { return null; }
+        }
+
+        // Uj telepites/frissites utan elmentjuk, PONTOSAN melyik commit-ot
+        // toltottuk le - git klonozasnal ezt "git rev-parse HEAD"-del kerdezzuk
+        // le, ZIP-es letoltesnel a GitHub API-tol mar amugy is lekert legfrissebb
+        // commit-ot hasznaljuk (a ZIP maga nem tartalmaz commit-infot).
+        private static void SaveInstallMetaAfterInstall(string targetPath, string repo, string method, Action<string> log)
+        {
+            try
+            {
+                string? sha = null;
+                DateTime? date = null;
+
+                if (method == "git")
+                {
+                    sha = GitRevParseHead(targetPath);
+                }
+
+                // Ha git-es klonozasnal nem sikerult a sha-t helyben lekerdezni,
+                // vagy ZIP-es telepites volt, a GitHub API-tol kerjuk le.
+                if (string.IsNullOrEmpty(sha))
+                {
+                    var (remoteSha, remoteDate, err) = GetLatestRemoteCommit(repo);
+                    if (err == null) { sha = remoteSha; date = remoteDate; }
+                }
+
+                if (string.IsNullOrEmpty(sha))
+                {
+                    log($"[{Path.GetFileName(targetPath)}] Figyelmeztetes: nem sikerult megallapitani a letoltott commit-ot - a kesobbi frissites-ellenorzes ennel a modulnal ujra teljes ujratoltest fog javasolni.");
+                    return;
+                }
+
+                var meta = new ModuleInstallMeta
+                {
+                    Commit = sha,
+                    CommitDate = date,
+                    InstalledUtc = DateTime.UtcNow,
+                    Method = method
+                };
+                File.WriteAllText(Path.Combine(targetPath, InstallMetaFile), JsonSerializer.Serialize(meta));
+            }
+            catch (Exception ex)
+            {
+                log($"[{Path.GetFileName(targetPath)}] Figyelmeztetes: a telepitesi metaadat mentese sikertelen - {ex.Message}");
+            }
+        }
+
+        private static string? GitRevParseHead(string repoPath)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo("git", "rev-parse HEAD")
+                {
+                    WorkingDirectory = repoPath,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var p = Process.Start(psi);
+                string output = p!.StandardOutput.ReadToEnd().Trim();
+                p.WaitForExit(5000);
+                return p.ExitCode == 0 && output.Length > 0 ? output : null;
+            }
+            catch { return null; }
+        }
+
+        // A GitHub publikus, hitelesites nelkuli API-jat hivja: a repo
+        // alapertelmezett agan (HEAD) levo legfrissebb commit sha-jat es
+        // datumat adja vissza. Hitelesites nelkul ~60 hivas/ora/IP a limit,
+        // ami bőven eleg egy-egy ellenorzeshez vagy ujratelepiteshez.
+        private static (string? sha, DateTime? date, string? error) GetLatestRemoteCommit(string repo)
+        {
+            try
+            {
+                using var http = new HttpClient();
+                http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("RTS-UpdateCheck", RtsVersion.Version));
+                http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+                http.Timeout = TimeSpan.FromSeconds(15);
+
+                string url = $"https://api.github.com/repos/{repo}/commits/HEAD";
+                string json = http.GetStringAsync(url).GetAwaiter().GetResult();
+
+                using var doc = JsonDocument.Parse(json);
+                string? sha = doc.RootElement.TryGetProperty("sha", out var shaEl) ? shaEl.GetString() : null;
+                DateTime? date = null;
+                if (doc.RootElement.TryGetProperty("commit", out var commitEl) &&
+                    commitEl.TryGetProperty("committer", out var committerEl) &&
+                    committerEl.TryGetProperty("date", out var dateEl) &&
+                    DateTime.TryParse(dateEl.GetString(), out var parsedDate))
+                {
+                    date = parsedDate;
+                }
+
+                return (sha, date, sha == null ? "ervenytelen API-valasz" : null);
+            }
+            catch (Exception ex)
+            {
+                return (null, null, ex.Message);
+            }
+        }
+
+        // Konnyu-sulyu ellenorzes (nem tolt le/ir semmit) - a Home/betoltokepernyon
+        // es az InfoView-n hasznalhato, hogy megmutassa, hany telepitett
+        // modulhoz van ujabb valtozat a GitHub-on, anelkul hogy barmit
+        // valtoztatna. Csak azokat a modulokat vizsgalja, amik enabled=true
+        // ES mar telepitve vannak.
+        public static List<ModuleUpdateStatus> CheckForUpdates(string rootPath, List<Models.ModuleInfo> modules)
+        {
+            var results = new List<ModuleUpdateStatus>();
+            string appsDir = Path.Combine(rootPath, "Apps");
+
+            foreach (var mod in modules.Where(m => m.Enabled && m.Visibility != "private"))
+            {
+                string targetPath = Path.Combine(appsDir, mod.Name);
+                bool installed = Directory.Exists(targetPath);
+                var status = new ModuleUpdateStatus { Name = mod.Name, Installed = installed };
+
+                if (!installed) { results.Add(status); continue; }
+
+                var localMeta = ReadInstallMeta(targetPath);
+                status.LocalCommit = localMeta?.Commit;
+
+                var (remoteSha, remoteDate, err) = GetLatestRemoteCommit(mod.Repo);
+                if (err != null) { status.Error = err; results.Add(status); continue; }
+
+                status.RemoteCommit = remoteSha;
+                status.RemoteCommitDate = remoteDate;
+                status.HasUpdate = localMeta == null || !string.Equals(localMeta.Commit, remoteSha, StringComparison.OrdinalIgnoreCase);
+                results.Add(status);
+            }
+
+            return results;
         }
     }
 }

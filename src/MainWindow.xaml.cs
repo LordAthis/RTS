@@ -1,5 +1,9 @@
+// Verzio: v0.4.0 - 2026-09-11 (lasd RTS.Models.RtsVersion a tenyleges,
+// kozponti verzioszamert - ez a komment csak emberi olvasasra/kovetesre
+// szolgal, a tenyleges frissites-ellenorzes NEM ebbol dolgozik)
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -25,7 +29,34 @@ namespace RTS
             InitializeComponent();
             DetectCurrentOS();
             LogToConsole("NEXUS RTS Rendszer betöltve. Keretrendszer készen áll.");
+            ShowHomeStatus();
             EnsureRtsInstalled();
+        }
+
+        // A "🏠 Home" gomb altal (es inditaskor) mutatott allapot-osszefoglalo:
+        // verzio + hany modul van telepitve/engedelyezve. A frissites-
+        // ellenorzest (GitHub-hivasokat igenyel) SZANDEKOSAN nem futtatjuk
+        // itt automatikusan minden inditaskor/kattintasra - az InfoView
+        // (F1) sajat "Frissitesek keresese" gombja vegzi, hogy ne lassitsa
+        // az inditast es ne fogyassza feleslegesen a GitHub API kvotat.
+        private void ShowHomeStatus()
+        {
+            string root = ModuleRunner.FindRtsRoot();
+            string statusLine = $"RTS v{RTS.Models.RtsVersion.Version} ({RTS.Models.RtsVersion.BuildDate})";
+
+            if (System.IO.File.Exists(System.IO.Path.Combine(root, "modules.json")))
+            {
+                var modules = ModuleCatalog.Load();
+                int enabledCount = modules.Count(m => m.Enabled);
+                int installedCount = modules.Count(m => m.Enabled && ModuleRunner.ModuleInstalled(m.Name));
+                statusLine += $" | {installedCount}/{enabledCount} modul telepitve | Frissites-ellenorzeshez: F1 -> \"Frissitesek keresese\"";
+            }
+            else
+            {
+                statusLine += " | Meg nincs telepitve egy modul sem - lasd a konzolt.";
+            }
+
+            TxtInfo.Text = statusLine;
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -314,7 +345,7 @@ namespace RTS
 
                 case "BtnHome":
                     MainContentArea.Content = null;
-                    TxtInfo.Text = "Rendszer készenlétben...";
+                    ShowHomeStatus();
                     break;
 
                 default:
