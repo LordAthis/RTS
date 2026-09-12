@@ -209,6 +209,25 @@ namespace RTS.Services
 
                 if (Directory.Exists(targetPath))
                 {
+                    // Verzio v0.4.3 - 2026-09-13 JAVITAS: mielott barmilyen
+                    // tavoli commit-ellenorzesbe kezdenenk, megnezzuk, hogy a
+                    // mar "meglevo" mappa egyaltalan EPP-e - azaz megvan-e a
+                    // sajat entry_point fajlja. A felhasznalo gepen talalt
+                    // logok szerint tobb modul mappaja korabban (v0.4.0/
+                    // v0.4.1 hibak miatt) reszben kiurult, es utana - mivel a
+                    // GitHub API kvotaja is ki volt merulve (403 rate limit) -
+                    // a v0.4.2-es "biztonsagos" logika soha nem jutott el a
+                    // tenyleges ujra-letoltesig, mert a hibas commit-
+                    // ellenorzesnel egyszeruen "a meglevo peldany marad"
+                    // dontessel leallt - meg akkor is, ha az a "meglevo
+                    // peldany" mar bizonyithatoan torott volt. Ha a mappa
+                    // igazoltan torott, MOST MAR akkor is nekilatunk az
+                    // ujra-letoltesnek, ha a tavoli ellenorzes hibazik -
+                    // hiszen a jelenlegi allapotot mindenkepp javitani kell,
+                    // nincs mit "megorizni" rajta.
+                    bool isBroken = !string.IsNullOrWhiteSpace(mod.EntryPoint) &&
+                                     !File.Exists(Path.Combine(targetPath, mod.EntryPoint));
+
                     // Megnezzuk, van-e ujabb commit a GitHub-on a helyben tarolt
                     // .rts-installed.json alapjan, es ha igen (vagy ha meg
                     // nincs meta - regi, e funkcio elotti telepites),
@@ -232,19 +251,30 @@ namespace RTS.Services
 
                     if (remoteErr != null)
                     {
-                        log($"[{mod.Name}] Mar letezik - frissites-ellenorzes sikertelen ({remoteErr}), a meglevo peldany marad.");
-                        continue;
+                        if (isBroken)
+                        {
+                            log($"[{mod.Name}] A meglevo peldany hianyos ({mod.EntryPoint} nem talalhato) ES a frissites-ellenorzes is sikertelen ({remoteErr}) - a commit-egyeztetes nelkul, kenyszeritve ujratoltjuk.");
+                            isUpdate = true;
+                        }
+                        else
+                        {
+                            log($"[{mod.Name}] Mar letezik - frissites-ellenorzes sikertelen ({remoteErr}), a meglevo peldany marad.");
+                            continue;
+                        }
                     }
-
-                    bool needsUpdate = localMeta == null || !string.Equals(localMeta.Commit, remoteSha, StringComparison.OrdinalIgnoreCase);
-                    if (!needsUpdate)
+                    else
                     {
-                        log($"[{mod.Name}] Mar letezik es naprakesz (commit: {ShortSha(remoteSha)}).");
-                        continue;
-                    }
+                        bool needsUpdate = isBroken || localMeta == null || !string.Equals(localMeta.Commit, remoteSha, StringComparison.OrdinalIgnoreCase);
+                        if (!needsUpdate)
+                        {
+                            log($"[{mod.Name}] Mar letezik es naprakesz (commit: {ShortSha(remoteSha)}).");
+                            continue;
+                        }
 
-                    log($"[{mod.Name}] Frissites elerheto (helyi: {(localMeta == null ? "ismeretlen (regi telepites)" : ShortSha(localMeta.Commit))} -> uj: {ShortSha(remoteSha)}, {remoteDate:yyyy-MM-dd}) - letoltes ideiglenes helyre...");
-                    isUpdate = true;
+                        string reason = isBroken ? $"a meglevo peldany hianyos ({mod.EntryPoint} nem talalhato)" : "frissites elerheto";
+                        log($"[{mod.Name}] {reason} (helyi: {(localMeta == null ? "ismeretlen (regi telepites)" : ShortSha(localMeta.Commit))} -> uj: {ShortSha(remoteSha)}, {remoteDate:yyyy-MM-dd}) - letoltes ideiglenes helyre...");
+                        isUpdate = true;
+                    }
                 }
 
                 string downloadPath = isUpdate ? targetPath + ".rts-new" : targetPath;
@@ -498,12 +528,49 @@ namespace RTS.Services
             catch { return null; }
         }
 
+        // Verzio v0.4.3 - 2026-09-13: EGYSZERU MEMORIA-GYORSITOTAR bevezetve
+        // a GitHub-hivasokhoz. A felhasznalo altal kuldott ujabb logokbol
+        // kiderult, hogy a "403 (rate limit exceeded)" nem egyszeri
+        // balesetet volt, hanem a napi tobbszori "Frissitesek keresese" +
+        // "Modulok ujratelepitese" kattintgatas (nemelyik masodperceken
+        // belul egymas utan) egy ora alatt tobbszor is kimeritette a
+        // GitHub nem-hitelesitett API kvotajat (~60 hivas/ora/IP) - 17
+        // modul * tobb egymas utani teljes ellenorzes gyorsan tulmegy
+        // ezen. Emiatt a mar korabban serult (l. v0.4.1/v0.4.2) modul-
+        // mappak SOHA nem jutottak el a tenyleges ujra-letoltesig, mert a
+        // frissites-ellenorzes minden egyes futasnal ujra 403-at kapott,
+        // es a "biztonsagos" viselkedes (v0.4.2) ilyenkor egyszeruen
+        // kihagyta a modult ("a meglevo peldany marad") - meg akkor is,
+        // ha az a "meglevo peldany" mar reg hianyos/torott volt.
+        //
+        // Ket fuggetlen javitas:
+        //  1) Ez a gyorsitotar: ugyanarra a repora 3 percen belul ismet
+        //     kert eredmenyt a memoriabol adja vissza, nem hiv ujra API-t -
+        //     igy egy "ellenorzes" + kozvetlenul utana egy "ujratelepites"
+        //     (vagy ket egymas utani kattintas) osszesen 1x, nem 2x-3x
+        //     hasznalja a kvotat repohonkent.
+        //  2) Lasd RunFirstTimeSetup: ha egy mar "meglevo" modul-mappabol
+        //     hianyzik a sajat entry_point fajlja (tehat biztosan torott,
+        //     korabbi hiba miatt), a redownload MOSTANTOL akkor is
+        //     megtortenik, ha a tavoli commit-ellenorzes 403-at/hibat ad -
+        //     a serult peldanyt nem eszszeru "erintetlenul hagyni".
+        private static readonly Dictionary<string, (string? sha, DateTime? date, string? error, DateTime fetchedUtc)> _remoteCommitCache = new();
+        private static readonly TimeSpan RemoteCommitCacheTtl = TimeSpan.FromMinutes(3);
+
         // A GitHub publikus, hitelesites nelkuli API-jat hivja: a repo
         // alapertelmezett agan (HEAD) levo legfrissebb commit sha-jat es
         // datumat adja vissza. Hitelesites nelkul ~60 hivas/ora/IP a limit,
-        // ami bőven eleg egy-egy ellenorzeshez vagy ujratelepiteshez.
+        // ami tobb egymas utani teljes ellenorzesnel/ujratelepitesnel MAR
+        // NEM eleg - lasd a fenti v0.4.3 megjegyzest.
         private static (string? sha, DateTime? date, string? error) GetLatestRemoteCommit(string repo)
         {
+            if (_remoteCommitCache.TryGetValue(repo, out var cached) &&
+                DateTime.UtcNow - cached.fetchedUtc < RemoteCommitCacheTtl)
+            {
+                return (cached.sha, cached.date, cached.error);
+            }
+
+            (string? sha, DateTime? date, string? error) result;
             try
             {
                 using var http = new HttpClient();
@@ -525,12 +592,15 @@ namespace RTS.Services
                     date = parsedDate;
                 }
 
-                return (sha, date, sha == null ? "ervenytelen API-valasz" : null);
+                result = (sha, date, sha == null ? "ervenytelen API-valasz" : null);
             }
             catch (Exception ex)
             {
-                return (null, null, ex.Message);
+                result = (null, null, ex.Message);
             }
+
+            _remoteCommitCache[repo] = (result.sha, result.date, result.error, DateTime.UtcNow);
+            return result;
         }
 
         // Konnyu-sulyu ellenorzes (nem tolt le/ir semmit) - a Home/betoltokepernyon
