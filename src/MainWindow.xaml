@@ -121,10 +121,14 @@
                                 </Border>
                             </Button>
                             <Button x:Name="BtnLn" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
-                                    ToolTip="LinkedIn (hamarosan - meg nincs megadva a link)">
+                                    ToolTip="LinkedIn profil megnyitasa" Click="BtnLn_Click">
                                 <Border Width="20" Height="20" CornerRadius="4" Background="#0A66C2">
                                     <TextBlock Text="in" FontSize="9" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
+                            </Button>
+                            <Button x:Name="BtnMail" Style="{StaticResource NeonButtonStyle}" Width="40" Height="40" Margin="2"
+                                    ToolTip="A LOG kuldese DiagMailer-el" Click="BtnMail_Click">
+                                <Image Source="Assets/mail_diagmailer.png" Width="32" Height="32" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Button>
                         </StackPanel>
                     </Grid>

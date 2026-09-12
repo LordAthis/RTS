@@ -31,6 +31,33 @@ namespace RTS.Services
     // letolti a modules.json-t es minden engedelyezett, publikus modult, majd
     // elmenti a valasztott mappat, hogy legkozelebb ne kelljen ujra kerdezni.
     //
+    // Verzio v0.4.2 - 2026-09-12: MASODIK, EZZEL OSSZEFUGGO HIBA JAVITVA -
+    // a felhasznalo altal kuldott valodi logokban ("Access to the path
+    // 'pack-....idx' is denied.") kiderult, hogy a sima Directory.Delete-nek
+    // MEG AKKOR IS baja lehet, ha csak egy ideiglenes/mar felesleges mappat
+    // torlunk: a git altal klonozott ".git" mappa "pack-*.idx" fajljait a
+    // git csak-olvashatonak jelzi, es a .NET Directory.Delete(path, true)
+    // ilyenkor FELBESZAKAD kozepen - a mar torolt fajlok/almappak NEM
+    // allnak vissza. Ez pontosan azt okozta a felhasznalo gepen, hogy a
+    // v0.4.1-es "biztonsagos" frissites-ellenorzes soran tobb modulnal a
+    // regi mappa reszben kiurult, mielott a torles hibat dobott volna -
+    // ettol indult tobb modul egyszerre "Fajl nem talalhato... futtasd a
+    // bootstrap.ps1-et" hibaval. Uj ForceDeleteDirectory() segedfuggveny
+    // minden torles elott levalasztja a csak-olvashato jelzest minden
+    // fajlrol - ez most MINDEN mappatorlesi helyen (ideiglenes letoltesi
+    // mappa, regi-peldany takaritas, ZIP-es ideiglenes mappa, nem-Windows
+    // almappak) hasznalva van.
+    //
+    // Verzio v0.4.1 - 2026-09-12: SULYOS HIBA JAVITVA - a v0.4.0-as frissites-
+    // ellenorzes ELOSZOR TOROLTE a mar telepitett modul mappajat, es csak
+    // UTANA probalta ujratolteni - ha ez sikertelen volt (halozat, GitHub
+    // kvota), a modul ures mappaval maradt, es "futtasd a bootstrap.ps1-et"
+    // hibaval NEM indult tobbe egyetlen ilyen modul sem. Mostantol a friss
+    // peldany egy ideiglenes ".rts-new" mappaba toltodik le, es a regi
+    // CSAK a sikeres letoltes UTAN, atomi mozgatassal csereeodik le - a
+    // regi peldany minden sikertelen frissitesi kiserletnel erintetlen
+    // marad.
+    //
     // Verzio v0.4.0 - 2026-09-11: COMMIT-ALAPU FRISSITES-ELLENORZES bevezetve.
     // Korabban egy mar letezo modul-mappat MINDIG kihagyott a telepito/
     // ujratelepito - sosem nezte meg, hogy kozben frissult-e a repo a
@@ -46,6 +73,38 @@ namespace RTS.Services
         private const string ConfigDir = "RTS";
         private const string ConfigFile = "install.json";
         private const string InstallMetaFile = ".rts-installed.json";
+
+        // v0.4.1 melle, a felhasznaloi log alapjan talalt masodik hiba javitasa:
+        // a sima Directory.Delete(path, true) Windows-on FELBESZAKADHAT, ha
+        // menet kozben olyan fajlba fut (pl. egy git-klonozott .git mappa
+        // "pack-*.idx" fajljai, amiket a git maga jelol csak-olvashatonak),
+        // amit nem tud torolni - es a mar torolt fajlokat/almappakat NEM allitja
+        // vissza. Ez okozta pontosan azt, hogy egy "sikertelen" torles a felhasznalo
+        // gepen NEM hagyta erintetlenul a regi mappat, hanem felig-meddig
+        // kiuritette - onnantol a modul "Fajl nem talalhato... bootstrap.ps1"
+        // hibaval nem indult. Ez a segedfuggveny elobb levaltja a csak-olvashato
+        // jelzest minden fajlrol, csak utana torol - es maga is elnyeli az
+        // esetleges hibat (a hivo dontheti el, mit kezd a sikertelenseggel).
+        private static bool ForceDeleteDirectory(string path)
+        {
+            try
+            {
+                if (!Directory.Exists(path)) return true;
+
+                var dirInfo = new DirectoryInfo(path);
+                foreach (var file in dirInfo.GetFiles("*", SearchOption.AllDirectories))
+                {
+                    try { file.Attributes = FileAttributes.Normal; } catch { }
+                }
+
+                Directory.Delete(path, true);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         private static string ConfigPath =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ConfigDir, ConfigFile);
@@ -146,12 +205,28 @@ namespace RTS.Services
                 }
 
                 string targetPath = Path.Combine(appsDir, mod.Name);
+                bool isUpdate = false;
+
                 if (Directory.Exists(targetPath))
                 {
-                    // MAR NEM feltetel nelkul kihagyjuk - megnezzuk, van-e
-                    // ujabb commit a GitHub-on a helyben tarolt .rts-installed.json
-                    // alapjan, es ha igen (vagy ha meg nincs meta - regi,
-                    // e funkcio elotti telepites), ujratoltjuk a modult.
+                    // Megnezzuk, van-e ujabb commit a GitHub-on a helyben tarolt
+                    // .rts-installed.json alapjan, es ha igen (vagy ha meg
+                    // nincs meta - regi, e funkcio elotti telepites),
+                    // frissitjuk a modult.
+                    //
+                    // FONTOS - v0.4.1 JAVITAS: a v0.4.0-as valtozat itt ELOSZOR
+                    // TOROLTE a regi, mukodo mappat, es csak UTANA probalta
+                    // letolteni az ujat - ha a letoltes barmilyen okbol
+                    // (halozati hiba, GitHub API/kvota-korlat, git hiba)
+                    // sikertelen volt, a modul ures/hianyos mappaval maradt,
+                    // es utana egyetlen modul sem tudott elindulni ("nincs
+                    // telepitve, futtasd a bootstrap.ps1-et" uzenettel). Ez
+                    // egy tobb modult is tomegesen "eltuntetett" a 10. kor
+                    // frissites-ellenorzese soran. MOSTANTOL a regi mappa
+                    // MINDIG megmarad addig, amig az uj peldany le nem
+                    // toltodott ES ellenorzottan sikeres nem lett - csak
+                    // AKKOR csereljuk le. Ha barmi sikertelen, a regi,
+                    // mukodo peldany erintetlen marad.
                     var localMeta = ReadInstallMeta(targetPath);
                     var (remoteSha, remoteDate, remoteErr) = GetLatestRemoteCommit(mod.Repo);
 
@@ -168,25 +243,65 @@ namespace RTS.Services
                         continue;
                     }
 
-                    log($"[{mod.Name}] Frissites elerheto (helyi: {(localMeta == null ? "ismeretlen (regi telepites)" : ShortSha(localMeta.Commit))} -> uj: {ShortSha(remoteSha)}, {remoteDate:yyyy-MM-dd}) - ujratoltes...");
-                    try { Directory.Delete(targetPath, true); }
-                    catch (Exception ex)
-                    {
-                        log($"[{mod.Name}] HIBA: a regi mappa torlese sikertelen ({ex.Message}) - a frissites kihagyva, kezzel torolheted: {targetPath}");
-                        continue;
-                    }
+                    log($"[{mod.Name}] Frissites elerheto (helyi: {(localMeta == null ? "ismeretlen (regi telepites)" : ShortSha(localMeta.Commit))} -> uj: {ShortSha(remoteSha)}, {remoteDate:yyyy-MM-dd}) - letoltes ideiglenes helyre...");
+                    isUpdate = true;
+                }
+
+                string downloadPath = isUpdate ? targetPath + ".rts-new" : targetPath;
+                if (isUpdate && Directory.Exists(downloadPath))
+                {
+                    ForceDeleteDirectory(downloadPath); // legfeljebb felulirodik, ha nem sikerul teljesen
                 }
 
                 log($"[{mod.Name}] Telepites: {mod.Repo}");
-                bool ok = gitAvailable && CloneViaGit(mod.Repo, targetPath, log);
+                bool ok = gitAvailable && CloneViaGit(mod.Repo, downloadPath, log);
                 string method = ok ? "git" : "";
-                if (!ok) { ok = DownloadZip(mod.Repo, targetPath, mod.Name, log); method = ok ? "zip" : ""; }
-                if (ok)
+                if (!ok) { ok = DownloadZip(mod.Repo, downloadPath, mod.Name, log); method = ok ? "zip" : ""; }
+
+                if (!ok)
                 {
-                    CleanupNonWindowsDirs(targetPath, mod.Name, log);
-                    SaveInstallMetaAfterInstall(targetPath, mod.Repo, method, log);
+                    // A regi peldany (ha volt) ERINTETLEN maradt - csak a
+                    // sikertelen ideiglenes letoltes-kiserletet takaritjuk.
+                    ForceDeleteDirectory(downloadPath);
+                    log(isUpdate
+                        ? $"[{mod.Name}] Frissites SIKERTELEN - a korabbi, mukodo peldany valtozatlanul megmaradt."
+                        : $"[{mod.Name}] SIKERTELEN.");
+                    continue;
                 }
-                log(ok ? $"[{mod.Name}] Kesz." : $"[{mod.Name}] SIKERTELEN.");
+
+                CleanupNonWindowsDirs(downloadPath, mod.Name, log);
+                SaveInstallMetaAfterInstall(downloadPath, mod.Repo, method, log);
+
+                if (isUpdate)
+                {
+                    // Csak MOST, a sikeres letoltes utan csereljuk le a regit -
+                    // a regi mappat egy roviden elo ".rts-old" nevre tesszuk
+                    // at (nem toroljuk azonnal), majd az uj kerul a helyere.
+                    string oldBackupPath = targetPath + ".rts-old";
+                    try
+                    {
+                        ForceDeleteDirectory(oldBackupPath);
+                        Directory.Move(targetPath, oldBackupPath);
+                        Directory.Move(downloadPath, targetPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        log($"[{mod.Name}] HIBA: a friss peldany sikeresen letoltodott ({downloadPath}), de a helyere-csereles sikertelen ({ex.Message}) - kezzel csereld ki: {targetPath}");
+                        continue;
+                    }
+
+                    // A regi peldany takaritasat KULON, a csere utan vegezzuk -
+                    // ha ez sikertelen (pl. meg mindig zarolt git pack-fajl),
+                    // az a friss, mar helyere tett peldanyt NEM veszelyezteti,
+                    // csak annyi tortenik, hogy egy ".rts-old" mappa ideiglenesen
+                    // ott marad (kesobbi frissitesnel ugyis felulirodik).
+                    if (!ForceDeleteDirectory(oldBackupPath))
+                    {
+                        log($"[{mod.Name}] Megjegyzes: a regi peldany takaritasa ('{oldBackupPath}') nem sikerult teljesen, de ez a mukodest nem befolyasolja.");
+                    }
+                }
+
+                log($"[{mod.Name}] Kesz.");
             }
 
             log("Telepites kesz. A Modulok nezetet erdemes ujranyitni a friss allapothoz.");
@@ -214,8 +329,10 @@ namespace RTS.Services
                     string fullDir = Path.Combine(targetPath, dir);
                     if (Directory.Exists(fullDir))
                     {
-                        Directory.Delete(fullDir, true);
-                        log($"[{moduleName}] Nem-Windows mappa torolve: {dir}");
+                        if (ForceDeleteDirectory(fullDir))
+                            log($"[{moduleName}] Nem-Windows mappa torolve: {dir}");
+                        else
+                            log($"[{moduleName}] Figyelmeztetes: a(z) '{dir}' mappa torlese nem sikerult teljesen (nem veszelyes, csak helyet foglal).");
                     }
                 }
             }
@@ -275,7 +392,7 @@ namespace RTS.Services
                 byte[] bytes = http.GetByteArrayAsync(zipUrl).GetAwaiter().GetResult();
                 File.WriteAllBytes(tmpZip, bytes);
 
-                if (Directory.Exists(tmpDir)) Directory.Delete(tmpDir, true);
+                ForceDeleteDirectory(tmpDir);
                 ZipFile.ExtractToDirectory(tmpZip, tmpDir);
 
                 var extracted = Directory.GetDirectories(tmpDir);
@@ -296,7 +413,7 @@ namespace RTS.Services
             finally
             {
                 try { File.Delete(tmpZip); } catch { }
-                try { if (Directory.Exists(tmpDir)) Directory.Delete(tmpDir, true); } catch { }
+                ForceDeleteDirectory(tmpDir);
             }
         }
 

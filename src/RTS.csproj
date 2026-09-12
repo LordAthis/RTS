@@ -17,5 +17,8 @@
          sajat ikonjat allitja be (Intezo/taskbar), ez pedig a WPF ablak
          sajat ikonjat (Alt+Tab, ablak bal felso sarka). -->
     <Resource Include="Assets\app.ico" />
+    <!-- v0.4.2: a LOG->DiagMailer gomb ikonja (felhasznalo altal jovahagyott,
+         Gemini-vel generalt "repulo boritek + LOG felirat" grafika). -->
+    <Resource Include="Assets\mail_diagmailer.png" />
   </ItemGroup>
 </Project>

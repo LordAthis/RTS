@@ -1,6 +1,6 @@
 namespace RTS.Models
 {
-    // Verzio v0.4.0 - 2026-09-11
+    // Verzio v0.4.2 - 2026-09-12
     // Az RTS.exe sajat verziojanak EGYETLEN, kozponti helye - minden mas
     // fajl (InfoView, a betoltokepernyo, stb.) innen olvassa ki, igy nem
     // fordulhat elo, hogy elfelejtjuk frissiteni valahol. Minden koronkent,
@@ -8,7 +8,7 @@ namespace RTS.Models
     // frissiteni.
     public static class RtsVersion
     {
-        public const string Version = "0.4.0";
-        public const string BuildDate = "2026-09-11";
+        public const string Version = "0.4.2";
+        public const string BuildDate = "2026-09-12";
     }
 }

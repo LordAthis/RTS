@@ -1,4 +1,4 @@
-// Verzio: v0.4.0 - 2026-09-11 (lasd RTS.Models.RtsVersion a tenyleges,
+// Verzio: v0.4.2 - 2026-09-12 (lasd RTS.Models.RtsVersion a tenyleges,
 // kozponti verzioszamert - ez a komment csak emberi olvasasra/kovetesre
 // szolgal, a tenyleges frissites-ellenorzes NEM ebbol dolgozik)
 using System;
@@ -31,6 +31,12 @@ namespace RTS
             LogToConsole("NEXUS RTS Rendszer betöltve. Keretrendszer készen áll.");
             ShowHomeStatus();
             EnsureRtsInstalled();
+
+            // v0.4.2 - LOG feldolgozo egyseg ELOKESZITESE (vazlat, lasd
+            // Services/LogProcessor.cs): minden inditaskor letrehozza/
+            // ellenorzi a ket seged-fajlt, es ha van bennuk barmi, kiirja.
+            try { LogProcessor.RunStartupCheck(ModuleRunner.FindRtsRoot(), LogToConsole); }
+            catch (Exception ex) { LogToConsole("[LOG feldolgozo] Hiba az inditasi ellenorzeskor: " + ex.Message); }
         }
 
         // A "🏠 Home" gomb altal (es inditaskor) mutatott allapot-osszefoglalo:
@@ -387,6 +393,34 @@ namespace RTS
             {
                 LogToConsole("Hiba a böngésző indításakor: " + ex.Message);
             }
+        }
+
+        // Verzio v0.4.2 - 2026-09-12: a korabban meg linkeletlen LinkedIn
+        // gomb vegre be van kotve.
+        private void BtnLn_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "https://www.linkedin.com/in/lordathis/",
+                    UseShellExecute = true
+                });
+                LogToConsole("LinkedIn megnyitása...");
+            }
+            catch (Exception ex)
+            {
+                LogToConsole("Hiba a böngésző indításakor: " + ex.Message);
+            }
+        }
+
+        // Verzio v0.4.2 - 2026-09-12: uj gomb - a LOG mappa elkuldese
+        // DiagMailer-rel. Lasd: Services/DiagMailerLauncher.cs a reszletekert
+        // (miert kulon "SendReport.ps1" hivas, es nem a Launcher.ps1 menuje).
+        private void BtnMail_Click(object sender, RoutedEventArgs e)
+        {
+            var result = Services.DiagMailerLauncher.SendLogFolder(LogToConsole);
+            LogToConsole(result.Message);
         }
     }
 }
