@@ -1,0 +1,17 @@
+<UserControl x:Class="RTS.Views.FavoritesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="15">
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="Kedvenc feladatok" Foreground="{DynamicResource SecondaryNeon}" FontSize="16" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+            <Button x:Name="BtnRunAll" DockPanel.Dock="Top" Content="Futtatas (Osszes Kedvenc Modul)"
+                    Style="{StaticResource NeonButtonStyle}" HorizontalAlignment="Left"
+                    Padding="14,8" Margin="0,0,0,15" Click="BtnRunAll_Click"/>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="ItemsPanel"/>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</UserControl>

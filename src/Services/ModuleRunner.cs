@@ -54,6 +54,24 @@ namespace RTS.Services
 
         public static string AppsDir => Path.Combine(FindRtsRoot(), "Apps");
 
+        // Verzio v0.5.0 - 2026-09-13: uj, ALTALANOS konvencio - minden,
+        // a gephez kotodo, RTS altal irt helyi allapot-/adatfajl (pl.
+        // kedvencek futtatasi elozmenye, kesobb a hardver-lekerdezes
+        // eredmenye, stb.) ide kerul, NEM az exe futtatasi helyere - hanem
+        // a TELEPITETT gyoker ala, hogy fuggetlen legyen attol, honnan
+        // (parancsikonrol, mas mappabol) inditottak az RTS.exe-t.
+        // Pl. ha a telepitesi mappa "C:\Program Files\RTS", akkor ez itt
+        // mindig "C:\Program Files\RTS\data" lesz.
+        public static string DataDir
+        {
+            get
+            {
+                string dir = Path.Combine(FindRtsRoot(), "data");
+                Directory.CreateDirectory(dir);
+                return dir;
+            }
+        }
+
         public static bool ModuleInstalled(string moduleName)
         {
             return Directory.Exists(Path.Combine(AppsDir, moduleName));

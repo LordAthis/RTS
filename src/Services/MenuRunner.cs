@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using RTS.Models;
 
 namespace RTS.Services
@@ -18,6 +19,114 @@ namespace RTS.Services
     //    keresztul), ez a "vegso eset", ahogy kertek.
     public static class MenuRunner
     {
+        // Verzio v0.5.0 - 2026-09-13: uj, AWAITABLE valtozat a "Kedvenc
+        // feladatok" (Favorites) sorozat-futtatashoz - ott meg kell varni,
+        // amig egy tetel lefut, mielott a kovetkezo elindulna. A "script"/
+        // "reg" tipusnal ez pontos (megvarjuk a folyamat kilepeset), a
+        // "shell" tipusnal (sajat ablakot/dialogust nyito parancsok) ezt
+        // nem lehet megbizhatoan megvarni - ott elinditjuk es azonnal
+        // tovabblepunk, naplozva, hogy ez kezi/felugyeleti figyelmet
+        // igenyelhet.
+        public static async Task ExecuteAsync(string moduleName, MenuItem item, string selectedOs, Action<string> log)
+        {
+            string moduleDir = Path.Combine(ModuleRunner.AppsDir, moduleName);
+
+            string effectiveType = item.Type;
+            string effectivePath = item.Path;
+            if (item.OsOverrides != null && item.OsOverrides.TryGetValue(selectedOs, out var ov))
+            {
+                effectiveType = ov.Type;
+                effectivePath = ov.Path;
+            }
+
+            string tag = $"[{moduleName}/{item.Name}]";
+
+            if (item.RequiresConsole || effectiveType == "shell")
+            {
+                log($"{tag} Kulon ablakban/parancskent inditva - ez a sorozatban NEM varhato meg automatikusan, kezi ellenorzest igenyelhet.");
+                Execute(moduleName, item, selectedOs, log);
+                return;
+            }
+
+            if (effectiveType == "reg")
+            {
+                RunReg(tag, moduleDir, effectivePath, log);
+                return;
+            }
+
+            await RunScriptCapturedAsync(tag, moduleName, moduleDir, effectivePath, log);
+        }
+
+        private static Task RunScriptCapturedAsync(string tag, string moduleName, string moduleDir, string relativePath, Action<string> log)
+        {
+            string fullPath = Path.Combine(moduleDir, relativePath);
+            if (!File.Exists(fullPath))
+            {
+                log($"{tag} Fajl nem talalhato: {fullPath} - futtasd eloszor a bootstrap-ot / modul-telepitest!");
+                return Task.CompletedTask;
+            }
+
+            string ext = Path.GetExtension(fullPath).ToLowerInvariant();
+            if (ext != ".ps1" && ext != ".bat" && ext != ".cmd")
+            {
+                log($"{tag} Ismeretlen script-tipus ({ext}) a sorozatban - kulon ablakban probaljuk, nem varhato meg.");
+                var result = ModuleRunner.Run(moduleName, relativePath);
+                log($"{tag} {result.Message}");
+                return Task.CompletedTask;
+            }
+
+            string fileName = (ext == ".ps1") ? "powershell.exe" : "cmd.exe";
+            var argList = new System.Collections.Generic.List<string>();
+            if (ext == ".ps1")
+            {
+                argList.Add("-NoProfile"); argList.Add("-ExecutionPolicy"); argList.Add("Bypass");
+                argList.Add("-File"); argList.Add(fullPath);
+            }
+            else
+            {
+                argList.Add("/c"); argList.Add(fullPath);
+            }
+
+            var psi = new ProcessStartInfo(fileName)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
+                WorkingDirectory = moduleDir
+            };
+            foreach (var a in argList) psi.ArgumentList.Add(a);
+
+            log($"{tag} Inditas (sorozatban, kimenet befogva)...");
+
+            var tcs = new TaskCompletionSource<bool>();
+            try
+            {
+                var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+                process.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) log($"{tag} {e.Data}"); };
+                process.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) log($"{tag} [HIBA] {e.Data}"); };
+                process.Exited += (s, e) =>
+                {
+                    log($"{tag} Lefutott (kilepokod: {process.ExitCode}).");
+                    process.Dispose();
+                    tcs.TrySetResult(true);
+                };
+
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+            }
+            catch (Exception ex)
+            {
+                log($"{tag} Hiba az inditaskor: {ex.Message}");
+                tcs.TrySetResult(false);
+            }
+
+            return tcs.Task;
+        }
+
         public static void Execute(string moduleName, MenuItem item, string selectedOs, Action<string> log)
         {
             string moduleDir = Path.Combine(ModuleRunner.AppsDir, moduleName);

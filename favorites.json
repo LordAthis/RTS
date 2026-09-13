@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0",
+  "favorites": [
+    { "module": "IWS", "item_id": "core-hardening" },
+    { "module": "IWS", "item_id": "usb-restriction" },
+    { "module": "IWS", "item_id": "quad9-doh" }
+  ]
+}

@@ -1,4 +1,4 @@
-// Verzio: v0.4.2 - 2026-09-12 (lasd RTS.Models.RtsVersion a tenyleges,
+// Verzio: v0.5.0 - 2026-09-13 (lasd RTS.Models.RtsVersion a tenyleges,
 // kozponti verzioszamert - ez a komment csak emberi olvasasra/kovetesre
 // szolgal, a tenyleges frissites-ellenorzes NEM ebbol dolgozik)
 using System;
@@ -309,10 +309,22 @@ namespace RTS
 
             switch (btn.Name)
             {
-                case "BtnRTS":   // F1 - rendszerinfo / gyorsinditó
+                case "BtnInfo":   // korabban "F1" a fejlecben - rendszerinfo / gyorsinditó
                     var infoView = new InfoView();
                     MainContentArea.Content = infoView;
                     TxtInfo.Text = "RTS - Rendszerinfo";
+                    break;
+
+                case "BtnFavorites":
+                    var favView = new Views.FavoritesView();
+                    MainContentArea.Content = favView;
+                    TxtInfo.Text = "Kedvenc feladatok betoltese...";
+                    break;
+
+                case "BtnTools":
+                    var toolsView = new Views.ToolsView();
+                    MainContentArea.Content = toolsView;
+                    TxtInfo.Text = "Modul: Eszkozok (hardver-lekerdezes)";
                     break;
 
                 case "BtnIWS":
@@ -364,12 +376,26 @@ namespace RTS
             }
         }
 
+        // Verzio v0.5.0 - 2026-09-13: VALODI hiba-javitas. A korabbi valtozat
+        // csak az "isDark" mezot forgatta, a tenyleges ResourceDictionary-
+        // csere SOSEM tortent meg (egy "marad a korabbi kodod" komment allt
+        // a helyen egy korabbi atirasnal). Emellett onmagaban ez sem lett
+        // volna eleg: a MainWindow.xaml es a NeonButtonStyle nagy resze
+        // direkt hex-szinekkel volt beegetve, nem DynamicResource-hoz kotve
+        // - ezt is javitottuk (lasd MainWindow.xaml es App.xaml).
         private void BtnThemeToggle_Click(object sender, RoutedEventArgs e)
         {
-            // theme váltás (marad a korábbi kódod)
             isDark = !isDark;
-            // ... a ResourceDictionary csere maradjon a te verziód szerint
-            HighlightOSButton(activeOSButton!);
+
+            var theme = new ResourceDictionary
+            {
+                Source = new Uri(isDark ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml", UriKind.Relative)
+            };
+            Application.Current.Resources.MergedDictionaries.Clear();
+            Application.Current.Resources.MergedDictionaries.Add(theme);
+
+            if (activeOSButton != null) HighlightOSButton(activeOSButton);
+            LogToConsole($"Tema valtva: {(isDark ? "sotet" : "vilagos")}");
         }
 
         private void BtnExit_Click(object sender, RoutedEventArgs e)

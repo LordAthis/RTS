@@ -13,50 +13,18 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip">
 
-    <Window.Resources>
-        <!-- NEON GOMB STÍLUS – háttér + hover + click villanás -->
-        <Style x:Key="NeonButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#111111"/>
-            <Setter Property="Foreground" Value="#00FF41"/>
-            <Setter Property="BorderBrush" Value="#00FF41"/>
-            <Setter Property="BorderThickness" Value="2"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="8"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <!-- Hover -->
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1F1F1F"/>
-                                <Setter Property="BorderBrush" Value="#00FF9F"/>
-                                <Setter Property="Foreground" Value="#00FF9F"/>
-                            </Trigger>
-                            <!-- Pressed (villanás) -->
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#00BFFF"/>
-                                <Setter Property="BorderBrush" Value="#00FFFF"/>
-                                <Setter Property="Foreground" Value="#000000"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
+    <!-- Verzio: v0.5.0 - 2026-09-13
+         A NeonButtonStyle innen KIKERULT: a ket parhuzamos (App.xaml es
+         itteni) valtozat kozul ez a "kozelebbi" (Window.Resources) nyert
+         mindig a WPF felbontasi sorrend miatt, EZERT nem szamitott, hogy
+         az App.xaml-beli valtozat theme-fuggo lett volna vagy sem. Most
+         EGYETLEN, kozponti, temafuggo valtozat el az App.xaml-ban. -->
 
     <Grid>
         <!-- FŐ KERET -->
         <Border x:Name="MainBorder" CornerRadius="20"
                 Background="{DynamicResource MainBgBrush}"
-                BorderBrush="#222" BorderThickness="2"
+                BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="2"
                 Panel.ZIndex="0"
                 Margin="20,45,20,20">
 
@@ -70,15 +38,23 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- BAL OLDAL (fő tartalom) -->
-                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
-                    <Border x:Name="A1_LoadingBorder" MinHeight="70" Background="#111" CornerRadius="12" BorderBrush="#222" BorderThickness="2">
+                <!-- BAL OLDAL (fő tartalom) - Grid, NEM StackPanel: az A2-nek
+                     a TENYLEGESEN rendelkezesre allo helyet kell kapnia (*),
+                     nem egy fix pixelszamot, kulonben kis ablakmeretnel az
+                     also resze levagodik (es az A2-n beluli ScrollViewer
+                     sem tud helyesen mukodni, mert hamis magassagot lat). -->
+                <Grid Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border x:Name="A1_LoadingBorder" Grid.Row="0" MinHeight="70" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="2">
                         <TextBlock x:Name="TxtInfo" Text="Rendszer készenlétben..." Foreground="Gray" Margin="15" VerticalAlignment="Center" FontSize="14" FontStyle="Italic" TextWrapping="Wrap"/>
                     </Border>
-                    <Border x:Name="A2_Area" Height="460" Margin="0,15,0,0" Background="#0A0A0A" CornerRadius="12" BorderBrush="#222" BorderThickness="1">
+                    <Border x:Name="A2_Area" Grid.Row="1" Margin="0,15,0,0" Background="{DynamicResource MainBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1">
                         <ContentControl x:Name="MainContentArea"/>
                     </Border>
-                </StackPanel>
+                </Grid>
 
                 <!-- JOBB OLDAL (panelek + log) -->
                 <Grid Grid.Row="1" Grid.Column="1">
@@ -89,21 +65,29 @@
                         <RowDefinition Height="50"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" x:Name="B1_Area" Margin="0,0,0,8" Background="#111" CornerRadius="12" BorderBrush="#222" BorderThickness="1">
-                        <TextBlock Text="B1: GYORSELÉRÉS" Foreground="#333" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
+                    <Border Grid.Row="0" x:Name="B1_Area" Margin="0,0,0,8" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1">
+                        <TextBlock Text="B1: GYORSELÉRÉS" Foreground="#666" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
                     </Border>
-                    <Border Grid.Row="1" x:Name="B2_Area" Margin="0,8" Background="#111" CornerRadius="12" BorderBrush="#222" BorderThickness="1">
-                        <TextBlock Text="B2: ESZKÖZÖK" Foreground="#333" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
+                    <Border Grid.Row="1" x:Name="B2_Area" Margin="0,8" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1">
+                        <ContentControl x:Name="B2Content">
+                            <TextBlock Text="B2: ESZKÖZÖK" Foreground="#666" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
+                        </ContentControl>
                     </Border>
-                    <Border Grid.Row="2" Margin="0,8" Background="Black" CornerRadius="12" BorderBrush="{DynamicResource AccentNeon}" BorderThickness="1">
+                    <Border Grid.Row="2" Margin="0,8" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource AccentNeon}" BorderThickness="1">
                         <ScrollViewer x:Name="LogScroller">
                             <TextBlock x:Name="TxtLog" Text="[RTS Core Initialized...]" Foreground="{DynamicResource AccentNeon}" FontFamily="Consolas" FontSize="11" Margin="10" TextWrapping="Wrap"/>
                         </ScrollViewer>
                     </Border>
 
-                    <!-- jobb alsó kis gombok: LOG mentés + GitHub/Blog/LinkedIn ikonok -->
+                    <!-- jobb alsó kis gombok: Eszközök + LOG mentés + GitHub/Blog/LinkedIn/Mail ikonok -->
                     <Grid Grid.Row="3" VerticalAlignment="Bottom">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <!-- Verzio v0.5.0 - 2026-09-13: uj gomb - "Eszkozok" (hardver-
+                                 lekerdezo panel) megnyitasa. A LOG gombtol balra, ahogy kertek. -->
+                            <Button x:Name="BtnTools" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
+                                    ToolTip="Eszkozok (hardver-lekerdezes)" Click="Module_Click">
+                                <TextBlock Text="🔧" FontSize="15"/>
+                            </Button>
                             <Button x:Name="BtnSaveLog" Style="{StaticResource NeonButtonStyle}" MinWidth="60" Height="35" Margin="2"
                                     ToolTip="Log mentese fajlba (C:\Program Files\RTS\LOG)" Click="BtnSaveLog_Click">
                                 <TextBlock Text="💾 LOG" FontSize="12"/>
@@ -126,9 +110,11 @@
                                     <TextBlock Text="in" FontSize="9" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                             </Button>
-                            <Button x:Name="BtnMail" Style="{StaticResource NeonButtonStyle}" Width="40" Height="40" Margin="2"
+                            <!-- Verzio v0.5.0: 40x40 -> 35x35, hogy egyezzen a sor tobbi
+                                 gombjaval (korabban egyedul ez volt nagyobb). -->
+                            <Button x:Name="BtnMail" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
                                     ToolTip="A LOG kuldese DiagMailer-el" Click="BtnMail_Click">
-                                <Image Source="Assets/mail_diagmailer.png" Width="32" Height="32" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Image Source="Assets/mail_diagmailer.png" Width="27" Height="27" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -154,7 +140,7 @@
                 <Button x:Name="BtnHome" Content="🏠" Style="{StaticResource NeonButtonStyle}" Width="45" Height="45"
                         ToolTip="Fooldal" Click="Module_Click"/>
 
-                <Border Background="#1A1A1A" CornerRadius="12" Padding="5" Margin="10,0,0,0" BorderBrush="#333" BorderThickness="1">
+                <Border Background="{DynamicResource SubPanelBgBrush}" CornerRadius="12" Padding="5" Margin="10,0,0,0" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1">
                     <StackPanel Orientation="Horizontal">
                         <Button x:Name="BtnXP"   Content="XP"  Style="{StaticResource NeonButtonStyle}" MinWidth="35" Margin="2" ToolTip="Cel-OS: Windows XP" Click="Module_Click"/>
                         <Button x:Name="BtnWin7" Content="7"   Style="{StaticResource NeonButtonStyle}" MinWidth="35" Margin="2" ToolTip="Cel-OS: Windows 7" Click="Module_Click"/>
@@ -165,17 +151,20 @@
             </StackPanel>
 
             <!-- Cim, kozepen (a *-*oszlopok kozott, mindig kozepen marad) -->
-            <Border Grid.Column="2" Background="Black" CornerRadius="15" Padding="20,5" BorderBrush="#444" BorderThickness="1" VerticalAlignment="Bottom">
+            <Border Grid.Column="2" Background="{DynamicResource HeaderBgBrush}" CornerRadius="15" Padding="20,5" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" VerticalAlignment="Bottom">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="NEXUS" Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="35"/>
                     <TextBlock Text="Bit&amp;Chip s.r.o." Foreground="{DynamicResource AccentNeon}" VerticalAlignment="Center" FontWeight="Bold" FontSize="20" Margin="4,0,0,0"/>
                 </StackPanel>
             </Border>
 
-            <!-- Jobb csoport: modul gyorsgombok (F1, WRT, STP, IWS, NET, MOD) -->
+            <!-- Jobb csoport: modul gyorsgombok (Kedvencek, WRT, STP, IWS, NET, MOD).
+                 Verzio v0.5.0: az "F1" (Info) gomb innen ATKERULT a bal also
+                 sarokba (a tema-valto es kilepes gomb koze) - lasd lent. A
+                 helyere egy uj, villam-ikonos "Kedvenc feladatok" gomb kerult. -->
             <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,10,0">
-                <Button x:Name="BtnRTS" Content="F1" Style="{StaticResource NeonButtonStyle}" MinWidth="50" Margin="3,0"
-                        ToolTip="Rendszerinfo es gyorsinditó" Click="Module_Click"/>
+                <Button x:Name="BtnFavorites" Content="⚡" Style="{StaticResource NeonButtonStyle}" MinWidth="50" Margin="3,0"
+                        ToolTip="Kedvenc feladatok - automatikus sorozat futtatasa (leiras kesobb)" Click="Module_Click"/>
                 <Button x:Name="BtnWRT" Content="WRT" Style="{StaticResource NeonButtonStyle}" MinWidth="50" Margin="3,0"
                         ToolTip="WinRegTools" Click="Module_Click"/>
                 <Button x:Name="BtnSTP" Content="STP" Style="{StaticResource NeonButtonStyle}" MinWidth="50" Margin="3,0"
@@ -189,10 +178,14 @@
             </StackPanel>
         </Grid>
 
-        <!-- BAL ALSÓ SAROK – lebegő gombok (theme + exit) -->
+        <!-- BAL ALSÓ SAROK – lebegő gombok (theme + info + exit).
+             Verzio v0.5.0: az "Info" (korabban "F1" a fejlecben) gomb ide
+             koltozott, a tema-valto es a kilepes gomb koze, "i" felirattal. -->
         <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="45,0,0,28" Panel.ZIndex="3">
             <Button x:Name="BtnThemeToggle" Content="🌓" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="0,0,10,0"
                     ToolTip="Sotet/vilagos tema valtas" Click="BtnThemeToggle_Click"/>
+            <Button x:Name="BtnInfo" Content="i" FontWeight="Bold" FontSize="18" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="0,0,10,0"
+                    ToolTip="Rendszerinfo es gyorsinditó" Click="Module_Click"/>
             <Button x:Name="BtnExit" Content="✕" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42"
                     ToolTip="Kilepes az RTS-bol" Click="BtnExit_Click"/>
         </StackPanel>

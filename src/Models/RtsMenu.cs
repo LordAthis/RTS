@@ -88,6 +88,13 @@ namespace RTS.Models
         // (pl. XP-n meg .reg, Win10+-on mar .ps1 valtja ki ugyanazt).
         [JsonPropertyName("os_overrides")]
         public Dictionary<string, MenuOsOverride>? OsOverrides { get; set; }
+
+        // Verzio v0.5.0 - 2026-09-13: opcionalis feltetel, ami eldonti,
+        // hogy ez a tetel MAR EL VAN-E VEGEZVE a gepen (lasd ServiceTask.cs
+        // a bekotes tortenetehez). Ha null vagy Type="none", nincs ilyen
+        // ellenorzes - a tetel mindig a szokasos OS-szures szerint jelenik meg.
+        [JsonPropertyName("already_done")]
+        public ServiceTaskCondition? AlreadyDone { get; set; }
     }
 
     public class MenuOsOverride

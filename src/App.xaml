@@ -8,36 +8,104 @@
                 <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-<Style x:Key="NeonButtonStyle" TargetType="Button">
-    <Setter Property="Background" Value="Transparent"/>
-    <Setter Property="Foreground" Value="White"/>
-    <Setter Property="BorderBrush" Value="Cyan"/>
-    <Setter Property="BorderThickness" Value="2"/>
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="Button">
-                <!-- A Border-nek VAN BorderBrush tulajdonsága, ez jó -->
-                <Border x:Name="border" 
-                        Background="{TemplateBinding Background}" 
-                        BorderBrush="{TemplateBinding BorderBrush}" 
-                        BorderThickness="{TemplateBinding BorderThickness}" 
-                        CornerRadius="8">
-                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Border>
-                <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <!-- Itt a TargetName="border" biztosítja, hogy a Border-t színezzük -->
-                        <Setter TargetName="border" Property="BorderBrush" Value="White"/>
-                    </Trigger>
-                </ControlTemplate.Triggers>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
-</Style>
-
+            <!-- Verzio: v0.5.0 - 2026-09-13
+                 EGYESITETT NeonButtonStyle: korabban KET, egymastol eltero
+                 valtozat letezett - ez itt (App.xaml, hardcode-olt Cyan/
+                 White szinekkel, sosem hasznalt) es egy masik, teljesebb
+                 valtozat a MainWindow.xaml Window.Resources-eben (hardcode-
+                 olt #111111/#00FF41 szinekkel). Mivel a WPF a MainWindow
+                 sajat Resources-et kozelebbinek latta, EZ a valtozat soha
+                 nem ervenyesult - holt kod volt. Most EGYETLEN, kozponti,
+                 TEMAFUGGO valtozat maradt, ide teve, hogy minden ablak/
+                 nezet lassa, es a sotet/vilagos valtas tenylegesen
+                 vegigfusson rajta is (ez volt az egyik oka annak, hogy a
+                 tema-valto gomb latszolag "nem csinalt semmit"). -->
+            <Style x:Key="NeonButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AccentNeon}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentNeon}"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Padding" Value="8"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <!-- Hover -->
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverBgBrush}"/>
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource ButtonHoverBorderBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ButtonHoverBorderBrush}"/>
+                                </Trigger>
+                                <!-- Pressed (villanás) -->
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonPressedBgBrush}"/>
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource ButtonPressedBorderBrush}"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+                                <!-- Letiltott (pl. "mar megvan" vagy "hamarosan" tetelek) -->
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Cursor" Value="Arrow"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
             <Style x:Key="ExitButtonStyle" TargetType="Button" BasedOn="{StaticResource NeonButtonStyle}">
                 <Setter Property="BorderBrush" Value="#FF4444"/>
+            </Style>
+
+            <!-- Verzio: v0.5.0 - 2026-09-13 - UJ: temafuggo ScrollBar stilus.
+                 Implicit (nincs x:Key), igy MINDEN ScrollBar-ra automatikusan
+                 vonatkozik az egesz appban (LogScroller, ModuleMenuView,
+                 ModulesView, stb.) - eddig a WPF alap (feher) sav jelent meg,
+                 ami nem illett a sotet temahoz. Csak fuggoleges hasznalatra
+                 van optimalizalva, mert az app sehol nem hasznal vizszintes
+                 gorgetosavot (mindenhol VerticalScrollBarVisibility="Auto",
+                 HorizontalScrollBarVisibility alapertelmezetten "Disabled"). -->
+            <Style TargetType="ScrollBar">
+                <Setter Property="Width" Value="10"/>
+                <Setter Property="Background" Value="{DynamicResource ScrollTrackBrush}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="{TemplateBinding Background}">
+                                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb>
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Border x:Name="thumbBorder" Background="{DynamicResource ScrollThumbBrush}" CornerRadius="5" Margin="1"/>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource ScrollThumbHoverBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
         </ResourceDictionary>
     </Application.Resources>

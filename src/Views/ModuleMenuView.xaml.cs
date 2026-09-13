@@ -64,13 +64,20 @@ namespace RTS.Views
                 var wrap = new WrapPanel();
                 foreach (var item in cat.Items)
                 {
+                    // Verzio v0.5.0: ha a tetelnek van "already_done" feltetele
+                    // ES az teljesul, a gomb LATHATO marad, de letiltva/szurkitve
+                    // jelenik meg, "(Mar megvan)" jelzessel - ugyanaz a mintat
+                    // kovetve, mint a mar meglevo "Hamarosan!" tetelek eseten.
+                    // Lasd Models/ServiceTask.cs + Services/ConditionEvaluator.cs.
+                    bool alreadyDone = ConditionEvaluator.IsAlreadyDone(item);
+
                     // A gomb felirata TextBlock-kent sortoresre kepesen jelenik meg,
                     // es a gomb MAGASSAGA (nem szelessege) no, ha kell - igy egy
                     // hosszabb tetelnev sem vagodik le/lesz olvashatatlanul kicsi,
                     // barmilyen (akar auto-generalt) nevvel is jon a modulbol.
                     var label = new TextBlock
                     {
-                        Text = item.Name,
+                        Text = alreadyDone ? $"{item.Name}\n(Mar megvan)" : item.Name,
                         TextWrapping = TextWrapping.Wrap,
                         TextAlignment = TextAlignment.Center,
                         FontSize = 12
@@ -78,19 +85,24 @@ namespace RTS.Views
                     var btn = new Button
                     {
                         Content = label,
-                        ToolTip = "1 kattintas: leiras. Dupla kattintas: futtatas.",
+                        ToolTip = alreadyDone
+                            ? "Ez a beallitas mar alkalmazva van ezen a rendszeren."
+                            : "1 kattintas: leiras. Dupla kattintas: futtatas.",
                         Style = (Style)Application.Current.Resources["NeonButtonStyle"],
                         Width = 210,
                         MinHeight = 46,
                         Padding = new Thickness(6, 4, 6, 4),
                         Margin = new Thickness(0, 0, 8, 8),
-                        Tag = item
+                        Tag = item,
+                        IsEnabled = !alreadyDone,
+                        Opacity = alreadyDone ? 0.5 : 1.0
                     };
                     // Nem a sima Click eseményt hasznaljuk: EGY kattintasra csak a
                     // tetel .md leirasat mutatjuk (nem futtatunk semmit), CSAK dupla
                     // kattintasra hajtjuk vegre tenylegesen - igy a felhasznalo elobb
                     // lathatja, mit csinal egy gomb, mielott futtatna.
-                    btn.PreviewMouseLeftButtonDown += Btn_PreviewMouseLeftButtonDown;
+                    if (!alreadyDone)
+                        btn.PreviewMouseLeftButtonDown += Btn_PreviewMouseLeftButtonDown;
                     wrap.Children.Add(btn);
                 }
                 CategoriesPanel.Children.Add(wrap);
