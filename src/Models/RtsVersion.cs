@@ -11,9 +11,11 @@ namespace RTS.Models
     // A1/A2 layout-javitas, "Eszkozok" gomb+nezet, "Kedvenc feladatok"
     // (Favorites) automatizacio, ServiceTask/MenuItem.AlreadyDone feltetel-
     // rendszer bekotve.
+    // 0.5.1 - a verziozsam+datum induláskor a B3 log-dobozba is kiirodik
+    // (eddig csak az A1 sávban jelent meg).
     public static class RtsVersion
     {
-        public const string Version = "0.5.0";
-        public const string BuildDate = "2026-09-13";
+        public const string Version = "0.5.1";
+        public const string BuildDate = "2026-09-14";
     }
 }

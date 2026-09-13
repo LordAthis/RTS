@@ -1,4 +1,4 @@
-// Verzio: v0.5.0 - 2026-09-13 (lasd RTS.Models.RtsVersion a tenyleges,
+// Verzio: v0.5.1 - 2026-09-14 (lasd RTS.Models.RtsVersion a tenyleges,
 // kozponti verzioszamert - ez a komment csak emberi olvasasra/kovetesre
 // szolgal, a tenyleges frissites-ellenorzes NEM ebbol dolgozik)
 using System;
@@ -29,6 +29,13 @@ namespace RTS
             InitializeComponent();
             DetectCurrentOS();
             LogToConsole("NEXUS RTS Rendszer betöltve. Keretrendszer készen áll.");
+            // Verzio v0.5.1 - 2026-09-14: a verzioszam+datum mostantol a B3
+            // log-dobozba IS kiirodik induláskor (eddig csak az A1 sávban
+            // jelent meg) - igy egy futo .exe-rol egyertelmuen, azonnal
+            // lathato, PONTOSAN melyik build fut, meg mielott barmit
+            // kattintanank (ez segithetett volna a korabbi "regi .exe fut,
+            // de nem tunt fel" zavarban).
+            LogToConsole($"RTS verzio: v{RTS.Models.RtsVersion.Version} ({RTS.Models.RtsVersion.BuildDate})");
             ShowHomeStatus();
             EnsureRtsInstalled();
 
