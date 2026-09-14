@@ -1,8 +1,8 @@
 {
-  "title": "Tamogatas",
+  "title": "Támogatás",
   "lines": [
-    "Ha hasznosnak talalod az RTS-t, orommel fogadok barmilyen tamogatast.",
-    "Tovabbi lehetosegek: https://lordathis.blogspot.com/p/tamogatas.html"
+    "Ha hasznosnak találod az RTS-t, örömmel fogadok bármilyen támogatást.",
+    "További lehetőségek: https://lordathis.blogspot.com/p/tamogatas.html"
   ],
   "wallets": [
     { "label": "Revolut", "address": "https://revolut.me/lordathis", "uri_scheme": "" },

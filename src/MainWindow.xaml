@@ -73,14 +73,17 @@
                             <TextBlock Text="B2: ESZKÖZÖK" Foreground="#666" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
                         </ContentControl>
                     </Border>
-                    <!-- Verzio v0.5.4 - 2026-09-14 - JAVITAS: az elozo korben tevesen a
-                         GOMBOKAT toltuk fel (RenderTransform), ami felesleges ures
-                         teruletet hagyott. A HELYES megoldas (ahogy az A2-nel is
-                         mukodik): a doboz KERETE nyulik le a gombsor moge
-                         (Grid.RowSpan="2", a 2. ES 3. sort is lefedi), a gombok
-                         a sajat, valtozatlan helyukon maradnak. Ez egyben nagyobb
-                         is lesz a B3 (tobb hely a log-szovegnek), ahogy kertek. -->
-                    <Border Grid.Row="2" Grid.RowSpan="2" Margin="0,8,0,0" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource AccentNeon}" BorderThickness="1">
+                    <!-- Verzio v0.5.8 - 2026-09-14 - MEG EGY JAVITAS: a v0.5.4-es
+                         Grid.RowSpan="2" megoldas TULSOKAT takart - a TELJES
+                         gombsor (50px) moge nyult a keret, igy a log-szoveg
+                         also sora eltunt mogotte, ami a B3-nal (ahol tenylegesen
+                         OLVASNI kell a szoveget) zavaro volt - az A2-nel ez nem
+                         gond, mert ott altalaban nincs also sorban fontos szoveg.
+                         MOST: nincs RowSpan, hanem a keret sajat also margoja
+                         NEGATIV (-25, a 50px-es gombsor FELE) - igy a keret CSAK
+                         a gombsor feleig nyulik le, ahogy eredetileg kertek. A
+                         gombok valtozatlanul a sajat helyukon maradnak. -->
+                    <Border Grid.Row="2" Margin="0,8,0,-25" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource AccentNeon}" BorderThickness="1">
                         <ScrollViewer x:Name="LogScroller">
                             <TextBlock x:Name="TxtLog" Text="[RTS Core Initialized...]" Foreground="{DynamicResource AccentNeon}" FontFamily="Consolas" FontSize="11" Margin="10" TextWrapping="Wrap"/>
                         </ScrollViewer>

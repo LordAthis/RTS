@@ -40,9 +40,18 @@ namespace RTS.Models
     // QR-koddal), vegleges sorrend (Revolut legelöl), Flux cim pontositva.
     // A link-tipusu "wallets" tetelek szovege mostantol kattinthato is
     // (nem csak QR), a kripto-cimek maradnak sima, masolhato szoveg.
+    // 0.5.8 - JAVITASOK: (1) RTS-info.json/donate.json tartalma build-
+    // idoben BEEGETVE (embedded resource), kulso fajl csak opcionalis
+    // felulbiralas - hiba/hianyzas eseten csendben az beegetett valtozatra
+    // esik vissza, sosem marad ures/hibas a felulet; (2) a "lines" elso
+    // eleme fejlec-szeruen (kozepen, felkover), a tobbi balra igazitva
+    // jelenik meg; (3) a szoveg ekezetesen (WPF UI, nem konzol - a
+    // "kiirt szoveg ekezetmentes" szabaly a parancssorra vonatkozik);
+    // (4) B3 atlogas javitva FELIG-re (nem a teljes gombsor moge, csak
+    // a fele - a v0.5.4-es RowSpan tulsokat takart a log-szovegbol).
     public static class RtsVersion
     {
-        public const string Version = "0.5.7";
+        public const string Version = "0.5.8";
         public const string BuildDate = "2026-09-14";
     }
 }

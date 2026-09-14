@@ -48,9 +48,17 @@ namespace RTS.Services
                 });
             }
 
-            foreach (var line in info.Lines)
+            // Verzio v0.5.8: az ELSO bekezdes fejlec-szeruen (kozepre
+            // igazitva, felkover), a TOBBI balra igazitva jelenik meg -
+            // ugyanaz a logika, mint a HomeInfoView-nal (lasd
+            // Views/HomeInfoView.cs AddParagraphs, ugyanoda vezetve vissza).
+            for (int i = 0; i < info.Lines.Count; i++)
             {
-                var tb = RichTextHelper.BuildTextBlockWithLinks(line, (Brush)Application.Current.Resources["TextBrush"], isSubSection ? 13 : 14, onError);
+                bool isHeader = i == 0;
+                double baseSize = isSubSection ? 13 : 14;
+                var tb = RichTextHelper.BuildTextBlockWithLinks(info.Lines[i], (Brush)Application.Current.Resources["TextBrush"], isHeader ? baseSize + 1 : baseSize, onError);
+                tb.TextAlignment = isHeader ? TextAlignment.Center : TextAlignment.Left;
+                tb.FontWeight = isHeader ? FontWeights.Bold : FontWeights.Normal;
                 tb.Margin = new Thickness(0, 0, 0, isSubSection ? 8 : 10);
                 target.Children.Add(tb);
             }

@@ -12,6 +12,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Verzio v0.5.8 - 2026-09-14: az RTS-info.json es a donate.json
+         TARTALMA mostantol BE VAN EGETVE az exe-be build-idoben, garantalt
+         tartalek/fallback kent. Miert: korabban ha a gyokerben levo KULSO
+         fajl hianyzott vagy hibas volt (pl. kezi szerkesztesi hiba a
+         GitHub-on), a felhasznalo egyszeruen nem latott SEMMI informaciot -
+         holott a repo-ban magaban a helyes tartalom megvolt, csak nem
+         jutott el a mar telepitett exe-hez frissites nelkul. Ezzent minden
+         UJ build automatikusan magaval viszi a build-idobeli tartalmat, es
+         (lasd HomeInfoView/DonateView) a kulso fajl csak akkor szamit, ha
+         LETEZIK ES ervenyes - egyebkent nesztelenul erre a beegetett
+         valtozatra esik vissza, SOSEM marad ures/hibas a felulet.
+         A kulso fajl igy tovabbra is hasznalhato gyors, ujraforditas nelkuli
+         szerkesztesre - csak mar nem az EGYETLEN forras. -->
+    <EmbeddedResource Include="..\RTS-info.json" LogicalName="RTS.EmbeddedResources.RTS-info.json" />
+    <EmbeddedResource Include="..\donate.json" LogicalName="RTS.EmbeddedResources.donate.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Verzio v0.5.4 - 2026-09-14: kripto-tarca QR-kodokhoz (lasd
          Services/QrCodeHelper.cs). Tiszta C#, nincs kulso fuggosege
          (System.Drawing-ot sem igenyel), MIT licenc. A NuGet-restore-t a

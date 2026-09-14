@@ -1,16 +1,20 @@
 {
   "title": "LordAthis / RTS",
   "lines": [
-    "Szerviz-tulajdonos vagyok, 26 eve majdnem napi szinten foglalkozom Windows hibajavitassal es tuninggal is.",
-    ,
-    ,
-    "Az RTS (Reparing's - Tuning's - Setting's) egy egyseges keretrendszer, ami az osszes szerviz-szkriptemet egy felulet ala gyujti.",
-    "Komponensek: WinRegTools/WRT (registry-javitasok), IWS (biztonsagi kemenyites), SetUpER/STP (program-telepitok), Network-Tools/NET (halozati diagnosztika), DeepSysTools es tovabbi modulok (MOD lista).",
-    ,
-    "Sajat funkciok: Kedvenc feladatok (villam-gomb, automata sorozat-futtatas -----> folyamatban)",
-    "Eszkozok panel (hardver-lekerdezes ---> folyamatban!)",
-    "Magyar+Angol tamogatas ----> folyamatban.",
-    ,
-    "A Blog reszletes leirasokkal bovul folyamatosan: https://lordathis.blogspot.com"
+    "Szerviz-tulajdonos vagyok, 26 éve foglalkozom Windows hibajavítással és tuninggal.",
+    "Az RTS (Repairing's – Tuning's – Setting's) egy egységes keretrendszer.",
+    "Az összes szerviz-szkriptemet egy felület alá gyűjti.",
+    "Komponensek:",
+    "WinRegTools / WRT – registry-javítások",
+    "IWS – biztonsági keményítés",
+    "SetUpER / STP – program-telepítők",
+    "Network-Tools / NET – hálózati diagnosztika",
+    "DeepSysTools és további modulok (MOD lista)",
+    "Saját funkciók:",
+    "Kedvenc feladatok – villám-gomb, automata sorozat-futtatás (folyamatban)",
+    "Eszközök panel – hardver-lekérdezés (folyamatban)",
+    "Sötét/világos téma",
+    "Magyar és angol nyelvi támogatás",
+    "A blog részletes leírásokkal bővül folyamatosan: https://lordathis.blogspot.com"
   ]
 }
