@@ -1,0 +1,11 @@
+{
+  "title": "Info",
+  "lines": [
+    "Ez a doboz (B2) az RTS-info.json fajlbol toltodik be.",
+    "Szabadon szerkesztheted - inditaskor es a hazikó gombra kattintva is ujraolvassa az RTS."
+  ],
+  "support_title": "Tamogatas",
+  "support_lines": [
+    "Ide kerulhetnek a tamogatasi lehetosegek (pl. BTC/Flux cim, vagy link a blogon lévő Tamogatas oldalra)."
+  ]
+}

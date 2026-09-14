@@ -39,7 +39,7 @@ namespace RTS
             // de nem tunt fel" zavarban).
             LogToConsole($"RTS verzio: v{RTS.Models.RtsVersion.Version} ({RTS.Models.RtsVersion.BuildDate})");
             ShowHomeStatus();
-            LoadHomeInfoIntoB2();
+            LoadRtsInfoIntoB2();
             EnsureRtsInstalled();
 
             // v0.4.2 - LOG feldolgozo egyseg ELOKESZITESE (vazlat, lasd
@@ -76,27 +76,27 @@ namespace RTS
         }
 
         // Verzio v0.5.2 - 2026-09-14: a B2 doboz ("ESZKOZOK" felirat helyett)
-        // mostantol egy kulso, szerkesztheto leiro fajlbol (home-info.json,
+        // mostantol egy kulso, szerkesztheto leiro fajlbol (RTS-info.json,
         // az RTS gyokereben) tolti be a tartalmat - induláskor ES minden
         // alkalommal, amikor a Home (hazikó) gombra kattintunk. Ha a fajl
         // hianyzik/hibas, egy egyszeru, nem hibauzenet-szeru alapertelmezett
         // szoveget mutat, es a hatterben logolja, mit probalt betolteni.
-        private void LoadHomeInfoIntoB2()
+        private void LoadRtsInfoIntoB2()
         {
-            string path = System.IO.Path.Combine(ModuleRunner.FindRtsRoot(), "home-info.json");
+            string path = System.IO.Path.Combine(ModuleRunner.FindRtsRoot(), "RTS-info.json");
             var panel = new StackPanel { Margin = new Thickness(10) };
 
             if (!File.Exists(path))
             {
                 panel.Children.Add(new TextBlock
                 {
-                    Text = "B2: nincs meg home-info.json a gyokerben.",
+                    Text = "B2: nincs meg RTS-info.json a gyokerben.",
                     Foreground = Brushes.Gray,
                     FontSize = 10,
                     TextWrapping = TextWrapping.Wrap,
                     TextAlignment = TextAlignment.Center
                 });
-                B2Content.Content = panel;
+                B2Content.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
                 return;
             }
 
@@ -104,7 +104,7 @@ namespace RTS
             {
                 string json = File.ReadAllText(path);
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var info = JsonSerializer.Deserialize<HomeInfo>(json, options) ?? new HomeInfo();
+                var info = JsonSerializer.Deserialize<RtsInfo>(json, options) ?? new RtsInfo();
 
                 if (!string.IsNullOrWhiteSpace(info.Title))
                 {
@@ -131,20 +131,59 @@ namespace RTS
                         Margin = new Thickness(0, 0, 0, 4)
                     });
                 }
-                B2Content.Content = panel;
+
+                // Tamogatas szekcio - vizualisan elkulonitve (elvalaszto vonal +
+                // sajat cim), csak akkor jelenik meg, ha tenylegesen van benne
+                // barmi a JSON-ban (ures fajlnal nem mutat ures dobozt).
+                if (!string.IsNullOrWhiteSpace(info.SupportTitle) || info.SupportLines.Count > 0)
+                {
+                    panel.Children.Add(new Border
+                    {
+                        BorderBrush = (Brush)Application.Current.Resources["PanelBorderBrush"],
+                        BorderThickness = new Thickness(0, 1, 0, 0),
+                        Margin = new Thickness(0, 6, 0, 6)
+                    });
+                    if (!string.IsNullOrWhiteSpace(info.SupportTitle))
+                    {
+                        panel.Children.Add(new TextBlock
+                        {
+                            Text = info.SupportTitle,
+                            Foreground = (Brush)Application.Current.Resources["AccentNeon"],
+                            FontWeight = FontWeights.Bold,
+                            FontSize = 11,
+                            Margin = new Thickness(0, 0, 0, 4),
+                            TextWrapping = TextWrapping.Wrap,
+                            TextAlignment = TextAlignment.Center
+                        });
+                    }
+                    foreach (var line in info.SupportLines)
+                    {
+                        panel.Children.Add(new TextBlock
+                        {
+                            Text = line,
+                            Foreground = (Brush)Application.Current.Resources["TextBrush"],
+                            FontSize = 10,
+                            TextWrapping = TextWrapping.Wrap,
+                            TextAlignment = TextAlignment.Center,
+                            Margin = new Thickness(0, 0, 0, 3)
+                        });
+                    }
+                }
+
+                B2Content.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             }
             catch (Exception ex)
             {
-                LogToConsole("[B2/home-info.json] Hiba a beolvasaskor: " + ex.Message);
+                LogToConsole("[B2/RTS-info.json] Hiba a beolvasaskor: " + ex.Message);
                 panel.Children.Add(new TextBlock
                 {
-                    Text = "B2: hiba a home-info.json beolvasasakor - lasd a logot.",
+                    Text = "B2: hiba az RTS-info.json beolvasasakor - lasd a logot.",
                     Foreground = Brushes.OrangeRed,
                     FontSize = 10,
                     TextWrapping = TextWrapping.Wrap,
                     TextAlignment = TextAlignment.Center
                 });
-                B2Content.Content = panel;
+                B2Content.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             }
         }
 
@@ -447,7 +486,7 @@ namespace RTS
                 case "BtnHome":
                     MainContentArea.Content = null;
                     ShowHomeStatus();
-                    LoadHomeInfoIntoB2();
+                    LoadRtsInfoIntoB2();
                     break;
 
                 default:

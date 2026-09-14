@@ -79,9 +79,19 @@
                         </ScrollViewer>
                     </Border>
 
-                    <!-- jobb alsó kis gombok: Eszközök + LOG mentés + GitHub/Blog/LinkedIn/Mail ikonok -->
+                    <!-- jobb alsó kis gombok: Eszközök + LOG mentés + GitHub/Blog/LinkedIn/Mail ikonok.
+                         Verzio v0.5.2 - 2026-09-14: RenderTransform-mal a sor felfele
+                         "belog" a B3 (log) doboz aljaba, kb a gombok feleig - igy
+                         hasonlit az A2-nel mar meglevo, tetszo hatasra, de kevesbe
+                         eros, hogy a log-szoveg olvashato maradjon. A Grid.Row="3"
+                         SAJAT helyfoglalasa valtozatlan (a transform csak vizualisan
+                         tolja el, a Grid nem vagja le a sorok kozotti atfedest -
+                         ugyanez az elv mukodteti mar az A2 also lebego gombjait is). -->
                     <Grid Grid.Row="3" VerticalAlignment="Bottom">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <StackPanel.RenderTransform>
+                                <TranslateTransform Y="-18"/>
+                            </StackPanel.RenderTransform>
                             <!-- Verzio v0.5.0 - 2026-09-13: uj gomb - "Eszkozok" (hardver-
                                  lekerdezo panel) megnyitasa. A LOG gombtol balra, ahogy kertek. -->
                             <Button x:Name="BtnTools" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
