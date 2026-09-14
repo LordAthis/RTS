@@ -5,6 +5,6 @@
     "Az RTS (Reparing's - Tuning's - Setting's) egy egyseges keretrendszer, ami az osszes szerviz-szkriptemet egy felulet ala gyujti.",
     "Komponensek: WinRegTools/WRT (registry-javitasok), IWS (biztonsagi kemenyites), SetUpER/STP (program-telepitok), Network-Tools/NET (halozati diagnosztika), DeepSysTools es tovabbi modulok (MOD lista).",
     "Sajat funkciok: Kedvenc feladatok (villam-gomb, automata sorozat-futtatas -----> folyamatban), Eszkozok panel (hardver-lekerdezes ---> folyamatban!), sotet/vilagos tema, magyar+angol tamogatas.",
-    "Blog reszletes leirasokkal bovul folyamatosan: lordathis.blogspot.com"
+    "Blog reszletes leirasokkal bovul folyamatosan: https://lordathis.blogspot.com"
   ]
 }
