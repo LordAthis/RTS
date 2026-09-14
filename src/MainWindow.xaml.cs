@@ -1,10 +1,11 @@
-// Verzio: v0.5.1 - 2026-09-14 (lasd RTS.Models.RtsVersion a tenyleges,
+// Verzio: v0.5.2 - 2026-09-14 (lasd RTS.Models.RtsVersion a tenyleges,
 // kozponti verzioszamert - ez a komment csak emberi olvasasra/kovetesre
 // szolgal, a tenyleges frissites-ellenorzes NEM ebbol dolgozik)
 using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,6 +14,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Microsoft.Win32;
+using RTS.Models;
 using RTS.Services;
 using RTS.Views;   // IWSView miatt
 
@@ -37,6 +39,7 @@ namespace RTS
             // de nem tunt fel" zavarban).
             LogToConsole($"RTS verzio: v{RTS.Models.RtsVersion.Version} ({RTS.Models.RtsVersion.BuildDate})");
             ShowHomeStatus();
+            LoadHomeInfoIntoB2();
             EnsureRtsInstalled();
 
             // v0.4.2 - LOG feldolgozo egyseg ELOKESZITESE (vazlat, lasd
@@ -70,6 +73,79 @@ namespace RTS
             }
 
             TxtInfo.Text = statusLine;
+        }
+
+        // Verzio v0.5.2 - 2026-09-14: a B2 doboz ("ESZKOZOK" felirat helyett)
+        // mostantol egy kulso, szerkesztheto leiro fajlbol (home-info.json,
+        // az RTS gyokereben) tolti be a tartalmat - induláskor ES minden
+        // alkalommal, amikor a Home (hazikó) gombra kattintunk. Ha a fajl
+        // hianyzik/hibas, egy egyszeru, nem hibauzenet-szeru alapertelmezett
+        // szoveget mutat, es a hatterben logolja, mit probalt betolteni.
+        private void LoadHomeInfoIntoB2()
+        {
+            string path = System.IO.Path.Combine(ModuleRunner.FindRtsRoot(), "home-info.json");
+            var panel = new StackPanel { Margin = new Thickness(10) };
+
+            if (!File.Exists(path))
+            {
+                panel.Children.Add(new TextBlock
+                {
+                    Text = "B2: nincs meg home-info.json a gyokerben.",
+                    Foreground = Brushes.Gray,
+                    FontSize = 10,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center
+                });
+                B2Content.Content = panel;
+                return;
+            }
+
+            try
+            {
+                string json = File.ReadAllText(path);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var info = JsonSerializer.Deserialize<HomeInfo>(json, options) ?? new HomeInfo();
+
+                if (!string.IsNullOrWhiteSpace(info.Title))
+                {
+                    panel.Children.Add(new TextBlock
+                    {
+                        Text = info.Title,
+                        Foreground = (Brush)Application.Current.Resources["SecondaryNeon"],
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 12,
+                        Margin = new Thickness(0, 0, 0, 6),
+                        TextWrapping = TextWrapping.Wrap,
+                        TextAlignment = TextAlignment.Center
+                    });
+                }
+                foreach (var line in info.Lines)
+                {
+                    panel.Children.Add(new TextBlock
+                    {
+                        Text = line,
+                        Foreground = (Brush)Application.Current.Resources["TextBrush"],
+                        FontSize = 11,
+                        TextWrapping = TextWrapping.Wrap,
+                        TextAlignment = TextAlignment.Center,
+                        Margin = new Thickness(0, 0, 0, 4)
+                    });
+                }
+                B2Content.Content = panel;
+            }
+            catch (Exception ex)
+            {
+                LogToConsole("[B2/home-info.json] Hiba a beolvasaskor: " + ex.Message);
+                panel.Children.Add(new TextBlock
+                {
+                    Text = "B2: hiba a home-info.json beolvasasakor - lasd a logot.",
+                    Foreground = Brushes.OrangeRed,
+                    FontSize = 10,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center
+                });
+                B2Content.Content = panel;
+            }
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -371,6 +447,7 @@ namespace RTS
                 case "BtnHome":
                     MainContentArea.Content = null;
                     ShowHomeStatus();
+                    LoadHomeInfoIntoB2();
                     break;
 
                 default:

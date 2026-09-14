@@ -13,9 +13,11 @@ namespace RTS.Models
     // rendszer bekotve.
     // 0.5.1 - a verziozsam+datum induláskor a B3 log-dobozba is kiirodik
     // (eddig csak az A1 sávban jelent meg).
+    // 0.5.2 - a B2 doboz kulso home-info.json leiro fajlbol tolti be a
+    // tartalmat, induláskor es a Home gombra kattintva.
     public static class RtsVersion
     {
-        public const string Version = "0.5.1";
+        public const string Version = "0.5.2";
         public const string BuildDate = "2026-09-14";
     }
 }
