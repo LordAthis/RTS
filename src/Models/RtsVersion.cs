@@ -49,9 +49,17 @@ namespace RTS.Models
     // "kiirt szoveg ekezetmentes" szabaly a parancssorra vonatkozik);
     // (4) B3 atlogas javitva FELIG-re (nem a teljes gombsor moge, csak
     // a fele - a v0.5.4-es RowSpan tulsokat takart a log-szovegbol).
+    // 0.5.9 - (1) BIZTONSAGI JAVITAS: a beegetett tartalom lett az
+    // ALAPERTELMEZETT forras (nem a kulso fajl) - igy senki nem tudja
+    // csendben lecserelni a fejleszto sajat fizetesi/tarca-linkjeit a
+    // sajatjara a helyi fajl modositasaval. (2) MOD-lista atalakitva:
+    // ABC-sorrendes, LAPOS lista - a mar rts-menu.json-nal rendelkezo
+    // repok (IWS, DeepSysTools, WinRegTools) EGYEDI modulokra bontva
+    // jelennek meg, a tobbi repo egyelore repo-szinten marad (ugyanabban
+    // a listaban), amig azokhoz is nem keszul rts-menu.json.
     public static class RtsVersion
     {
-        public const string Version = "0.5.8";
+        public const string Version = "0.5.9";
         public const string BuildDate = "2026-09-14";
     }
 }
