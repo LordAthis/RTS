@@ -12,6 +12,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Verzio v0.5.4 - 2026-09-14: kripto-tarca QR-kodokhoz (lasd
+         Services/QrCodeHelper.cs). Tiszta C#, nincs kulso fuggosege
+         (System.Drawing-ot sem igenyel), MIT licenc. A NuGet-restore-t a
+         GitHub Actions windows-latest runner vegzi buildkor. -->
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Az .ico-t WPF-eroforraskent is bevonjuk, hogy a Window.Icon (pack URI)
          is fel tudja oldani - az ApplicationIcon fentebb csak az .exe fajl
          sajat ikonjat allitja be (Intezo/taskbar), ez pedig a WPF ablak

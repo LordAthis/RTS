@@ -1,17 +1,10 @@
 {
   "title": "LordAthis / RTS",
   "lines": [
-    "Szerviz-tulajdonos vagyok, 26 éve majdnem napi szinten foglalkozom Windows hibajavitassal es tuninggal is.",
+    "Szerviz-tulajdonos vagyok, 26 eve majdnem napi szinten foglalkozom Windows hibajavitassal es tuninggal is.",
     "Az RTS (Reparing's - Tuning's - Setting's) egy egyseges keretrendszer, ami az osszes szerviz-szkriptemet egy felulet ala gyujti.",
-    "Komponensek: WinRegTools/WRT (registry-javitasok), IWS (biztonsagi keményites), SetUpER/STP (program-telepitok), Network-Tools/NET (halozati diagnosztika), DeepSysTools es tovabbi modulok (MOD lista).",
-    "Sajat funkciok: Kedvenc feladatok (villam-gomb, automata sorozat-futtatas  -----> folyamatban), Eszkozok panel (hardver-lekerdezes ---> folyamatban!), sotet/vilagos tema, magyar+angol tamogatas.",
+    "Komponensek: WinRegTools/WRT (registry-javitasok), IWS (biztonsagi kemenyites), SetUpER/STP (program-telepitok), Network-Tools/NET (halozati diagnosztika), DeepSysTools es tovabbi modulok (MOD lista).",
+    "Sajat funkciok: Kedvenc feladatok (villam-gomb, automata sorozat-futtatas -----> folyamatban), Eszkozok panel (hardver-lekerdezes ---> folyamatban!), sotet/vilagos tema, magyar+angol tamogatas.",
     "Blog reszletes leirasokkal bovul folyamatosan: lordathis.blogspot.com"
-  ],
-  "support_title": "Tamogatas",
-  "support_lines": [
-    "Ha hasznosnak talalod az RTS-t, orommel fogadok barmilyen tamogatast.",
-    "BTC: 12CDLg9R1ai3VptWZs6Pk9HBazdnujnAuc",
-    "Flux: t1drDdkAZckcU7QbSjNLwm4JfVrNp9PymK3",
-    "Tovabbi lehetosegek: https://lordathis.blogspot.com/p/tamogatas.html"
   ]
 }

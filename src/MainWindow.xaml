@@ -73,25 +73,35 @@
                             <TextBlock Text="B2: ESZKÖZÖK" Foreground="#666" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
                         </ContentControl>
                     </Border>
-                    <Border Grid.Row="2" Margin="0,8" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource AccentNeon}" BorderThickness="1">
+                    <!-- Verzio v0.5.4 - 2026-09-14 - JAVITAS: az elozo korben tevesen a
+                         GOMBOKAT toltuk fel (RenderTransform), ami felesleges ures
+                         teruletet hagyott. A HELYES megoldas (ahogy az A2-nel is
+                         mukodik): a doboz KERETE nyulik le a gombsor moge
+                         (Grid.RowSpan="2", a 2. ES 3. sort is lefedi), a gombok
+                         a sajat, valtozatlan helyukon maradnak. Ez egyben nagyobb
+                         is lesz a B3 (tobb hely a log-szovegnek), ahogy kertek. -->
+                    <Border Grid.Row="2" Grid.RowSpan="2" Margin="0,8,0,0" Background="{DynamicResource PanelBgBrush}" CornerRadius="12" BorderBrush="{DynamicResource AccentNeon}" BorderThickness="1">
                         <ScrollViewer x:Name="LogScroller">
                             <TextBlock x:Name="TxtLog" Text="[RTS Core Initialized...]" Foreground="{DynamicResource AccentNeon}" FontFamily="Consolas" FontSize="11" Margin="10" TextWrapping="Wrap"/>
                         </ScrollViewer>
                     </Border>
 
                     <!-- jobb alsó kis gombok: Eszközök + LOG mentés + GitHub/Blog/LinkedIn/Mail ikonok.
-                         Verzio v0.5.2 - 2026-09-14: RenderTransform-mal a sor felfele
-                         "belog" a B3 (log) doboz aljaba, kb a gombok feleig - igy
-                         hasonlit az A2-nel mar meglevo, tetszo hatasra, de kevesbe
-                         eros, hogy a log-szoveg olvashato maradjon. A Grid.Row="3"
-                         SAJAT helyfoglalasa valtozatlan (a transform csak vizualisan
-                         tolja el, a Grid nem vagja le a sorok kozotti atfedest -
-                         ugyanez az elv mukodteti mar az A2 also lebego gombjait is). -->
+                         A gombsor a SAJAT, eredeti helyen marad (nincs RenderTransform) -
+                         a B3 keret nyulik alája/moge (lasd fent), igy nez ki ugyanugy,
+                         mint az A2 also lebego gombjainal. -->
                     <Grid Grid.Row="3" VerticalAlignment="Bottom">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <StackPanel.RenderTransform>
-                                <TranslateTransform Y="-18"/>
-                            </StackPanel.RenderTransform>
+                        <!-- Verzio v0.5.6 - 2026-09-14 - JAVITAS: a jobb oldali
+                             gombsor alsó vonala nem esett egybe a bal-also
+                             lebego gombok (theme/info/donate/exit) alsó
+                             vonalaval - kiszamolva: a jobb oldali 37px-re volt
+                             az ablak aljatol, a bal oldali 28px-re (a
+                             MainBorder+belso Grid margo-lanca miatt). A
+                             -9px-es also margo pontosan kiegyenliti ezt,
+                             FUGGETLENUL attol, hogy a gombok mereteben van-e
+                             kulonbseg (a Bottom-igazitas es ez a korrekcio
+                             barmilyen gombmerettel egy vonalban tartja oket). -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,-9">
                             <!-- Verzio v0.5.0 - 2026-09-13: uj gomb - "Eszkozok" (hardver-
                                  lekerdezo panel) megnyitasa. A LOG gombtol balra, ahogy kertek. -->
                             <Button x:Name="BtnTools" Style="{StaticResource NeonButtonStyle}" Width="35" Height="35" Margin="2"
@@ -196,6 +206,11 @@
                     ToolTip="Sotet/vilagos tema valtas" Click="BtnThemeToggle_Click"/>
             <Button x:Name="BtnInfo" Content="i" FontWeight="Bold" FontSize="18" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="0,0,10,0"
                     ToolTip="Rendszerinfo es gyorsinditó" Click="Module_Click"/>
+            <!-- Verzio v0.5.5 - 2026-09-14: uj gomb - csak a donate.json-t
+                 tolti be (lasd DonateView) - a Home ezt a fajlt is beemeli,
+                 de EGYUTT az RTS-info.json-nal, ez a gomb pedig ONALLOAN. -->
+            <Button x:Name="BtnDonate" Content="💰" FontSize="18" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42" Margin="0,0,10,0"
+                    ToolTip="Tamogatas (Donate)" Click="Module_Click"/>
             <Button x:Name="BtnExit" Content="✕" Style="{StaticResource NeonButtonStyle}" Width="42" Height="42"
                     ToolTip="Kilepes az RTS-bol" Click="BtnExit_Click"/>
         </StackPanel>

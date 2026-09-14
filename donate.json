@@ -1,0 +1,18 @@
+{
+  "title": "Tamogatas",
+  "lines": [
+    "Ha hasznosnak talalod az RTS-t, orommel fogadok barmilyen tamogatast.",
+    "Tovabbi lehetosegek: https://lordathis.blogspot.com/p/tamogatas.html"
+  ],
+  "wallets": [
+    { "label": "Revolut", "address": "https://revolut.me/lordathis", "uri_scheme": "" },
+    { "label": "PayPal", "address": "https://paypal.me/lordathis", "uri_scheme": "" },
+    { "label": "Patreon", "address": "https://www.patreon.com/LordAthis", "uri_scheme": "" },
+    { "label": "BTC", "address": "12CDLg9R1ai3VptWZs6Pk9HBazdnujnAuc", "uri_scheme": "bitcoin" },
+    { "label": "SOL", "address": "BoxwHSCkouwbFny99ed6c47YHwzqJq4s9xc4zwVuZvuc", "uri_scheme": "" },
+    { "label": "TRX", "address": "TRVFbwDDYfSqKPgmqxwdeKdKbgWXYZihtK", "uri_scheme": "" },
+    { "label": "ETH", "address": "0x0c5F8B365aE67b48e569b893A58Ca230f6f8b4DD", "uri_scheme": "" },
+    { "label": "Flux", "address": "t1drDdkAZckcU7QbSjNLwm4JfVrNp9PymK3", "uri_scheme": "" },
+    { "label": "Skool", "address": "https://www.skool.com/signup?ref=fa66a8c807e644ac9e4e2cbaf791d054", "uri_scheme": "" }
+  ]
+}
