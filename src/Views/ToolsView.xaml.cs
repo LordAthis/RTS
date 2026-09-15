@@ -1,11 +1,16 @@
-// Verzio: v0.6.1 - 2026-09-15
+// Verzio: v0.7.0 - 2026-09-15
 // DRAFT - lasd ToolsView.xaml fejlec-megjegyzeset. Ez a nezet mar
 // tenylegesen meghivja a HardwareQueryService-t/ToolAcquisition-t/
 // RustDeskLauncher-t (nem csak navigacios belepesi pont, mint a korabbi
 // stub).
 //
-// Verzio v0.6.1 - uj: RustDesk sor (SetUpER-en keresztuli telepites) +
-// "automatikus telepites" jelolonegyzet+Alkalmaz (ToolsSettingsService).
+// ROUND16 PONTOSITAS (LordAthis 2026-09-15): a CPU-Z/GPU-Z/H.D. Sentinel/
+// Resource Hacker MOSTANTOL mindig, kerdes/kapcsolo nelkul automatikusan
+// beszerzodik (lasd Services/ToolsBootstrap.cs, amit MOST MAR itt is es a
+// MainWindow induláskor is meghiv) - a korabbi, egyetlen kapcsolora
+// (ChkAutoInstall) epulo, a TELJES eszkoz-csoportra vonatkozo logika
+// megszunt. A jelolonegyzet+"Alkalmaz" gomb MOSTANTOL KIZAROLAG a
+// RustDesk automatikus telepiteset/beallitasat vezerli.
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -19,15 +24,24 @@ namespace RTS.Views
 {
     public partial class ToolsView : UserControl
     {
-        private bool _autoInstallRunning;
-
         public ToolsView()
         {
             InitializeComponent();
             LoadFromCache();
-            ChkAutoInstall.IsChecked = ToolsSettingsService.Load().AutoInstall;
+            ChkAutoInstall.IsChecked = ToolsSettingsService.Load().RustDeskAutoInstall;
             BuildToolStatusList();
-            _ = AutoAcquireIfEnabledAsync();
+            _ = RunBootstrapAndRefreshAsync();
+        }
+
+        // A passziv eszkozok (CPU-Z/GPU-Z/HDS/ResourceHacker) beszerzese
+        // MOST MAR feltetel nelkuli, kozos logika (ToolsBootstrap) - ezt a
+        // panel megnyitasakor IS lefuttatjuk (idempotens: ha a MainWindow
+        // induláskori hivasa mar vegzett/fut, ez azonnal visszater), hogy
+        // a lista biztosan naprakesz legyen, majd ujraepitjuk a sorokat.
+        private async Task RunBootstrapAndRefreshAsync()
+        {
+            await ToolsBootstrap.RunSilentlyAsync(Log);
+            BuildToolStatusList();
         }
 
         private void LoadFromCache()
@@ -88,9 +102,9 @@ namespace RTS.Views
             bool enabled = ChkAutoInstall.IsChecked == true;
             ToolsSettingsService.Save(enabled);
             Log(enabled
-                ? "[Eszkozok] Automatikus telepites BEKAPCSOLVA - a hianyzo eszkozok mostantol maguktol letoltodnek/telepulnek."
-                : "[Eszkozok] Automatikus telepites KIKAPCSOLVA - a hianyzo eszkozoket kezzel, a \"Letoltes\"/\"Telepites\" gombokkal kell megszerezni.");
-            if (enabled) _ = AutoAcquireIfEnabledAsync();
+                ? "[RustDesk] Automatikus telepites es beallitas BEKAPCSOLVA."
+                : "[RustDesk] Automatikus telepites es beallitas KIKAPCSOLVA - a RustDesk mostantol csak a sajat sora melletti \"Telepites\" gombbal telepszik.");
+            if (enabled) _ = RunBootstrapAndRefreshAsync();
         }
 
         private void Log(string message)
@@ -195,35 +209,5 @@ namespace RTS.Views
             return panel;
         }
 
-        // Ha az "automatikus telepites" be van kapcsolva (ToolsSettingsService),
-        // a nezet MEGNYITASAKOR magatol nekilat a hianyzo eszkozok
-        // megszerzesenek - a felhasznalonak nem kell kulon kattintania.
-        // A tenyleges letoltes/telepites igy is ugyanazon a logikan
-        // (ToolAcquisition / RustDeskLauncher) megy at, csak nem var
-        // kattintasra.
-        private async Task AutoAcquireIfEnabledAsync()
-        {
-            if (_autoInstallRunning) return;
-            if (!ToolsSettingsService.Load().AutoInstall) return;
-
-            _autoInstallRunning = true;
-            try
-            {
-                if (!ToolAcquisition.IsPresent(ToolId.CpuZ)) { await ToolAcquisition.EnsureAsync(ToolId.CpuZ, Log); }
-                if (!ToolAcquisition.IsPresent(ToolId.GpuZ)) { await ToolAcquisition.EnsureAsync(ToolId.GpuZ, Log); }
-                if (!ToolAcquisition.IsPresent(ToolId.HdSentinelFree)) { await ToolAcquisition.EnsureAsync(ToolId.HdSentinelFree, Log); }
-                if (!ToolAcquisition.IsPresent(ToolId.ResourceHacker)) { await ToolAcquisition.EnsureAsync(ToolId.ResourceHacker, Log); }
-                if (!RustDeskLauncher.IsInstalled() && RustDeskLauncher.IsSetUpErReady())
-                {
-                    var (ok, message) = await RustDeskLauncher.EnsureInstalledAsync(Log);
-                    Log(message);
-                }
-                BuildToolStatusList();
-            }
-            finally
-            {
-                _autoInstallRunning = false;
-            }
-        }
     }
 }

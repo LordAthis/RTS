@@ -39,20 +39,29 @@ namespace RTS
             LogToConsole($"RTS verzio: v{RTS.Models.RtsVersion.Version} ({RTS.Models.RtsVersion.BuildDate})");
             ShowHomeStatus();
 
+            // ROUND16 PONTOSITAS (LordAthis 2026-09-15): ez a kerdes MOSTANTOL
+            // KIZAROLAG a RustDeskre vonatkozik. A CPU-Z/GPU-Z/H.D. Sentinel/
+            // Resource Hacker artalmatlan, portable, csak-olvaso segedprogram
+            // - ezek MOST MAR mindig, kerdes nelkul, automatikusan beszerzodnek
+            // (lasd lejjebb: ToolsBootstrap.RunSilentlyAsync). A RustDesk
+            // viszont tavoli hozzaferest ad a gephez, ezert ez marad kulon
+            // jovahagyashoz kotve.
             if (!ToolsSettingsService.HasBeenAsked)
             {
                 var answer = MessageBox.Show(
-                    "Szeretned, hogy az RTS automatikusan letoltse/telepitse a hasznalathoz szukseges " +
-                    "segedeszkozoket (CPU-Z, GPU-Z, H.D. Sentinel, Resource Hacker, RustDesk), amikor " +
-                    "eloszor szukseg lesz rajuk?\n\n" +
+                    "Szeretned, hogy az RTS automatikusan telepitse es allitsa be a RustDesket " +
+                    "(tavfelugyeleti eszkoz), amikor eloszor szukseg lesz ra?\n\n" +
+                    "(A tobbi segedeszkoz - CPU-Z, GPU-Z, H.D. Sentinel, Resource Hacker - mindig " +
+                    "automatikusan, kerdes nelkul telepszik, mert azok artalmatlan, csak-olvaso " +
+                    "segedprogramok.)\n\n" +
                     "Kesobb barmikor at tudod allitani az Eszkozok (🔧) panelen.",
-                    "RTS - Automatikus eszkoz-telepites",
+                    "RTS - RustDesk automatikus telepites",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
                 ToolsSettingsService.Save(answer == MessageBoxResult.Yes);
                 LogToConsole(answer == MessageBoxResult.Yes
-                    ? "Automatikus eszkoz-telepites bekapcsolva (elso-inditasi valasz)."
-                    : "Automatikus eszkoz-telepites kikapcsolva (elso-inditasi valasz) - kesobb az Eszkozok panelen bekapcsolhato.");
+                    ? "RustDesk automatikus telepites es beallitas bekapcsolva (elso-inditasi valasz)."
+                    : "RustDesk automatikus telepites kikapcsolva (elso-inditasi valasz) - kesobb az Eszkozok panelen bekapcsolhato.");
             }
             B2Content.Content = new Views.ToolsSummaryView();
             // Verzio v0.5.4 - 2026-09-14 - JAVITAS: az RTS-info.json tartalma
@@ -62,6 +71,14 @@ namespace RTS
             // van fenntartva, ide nem az RTS-info.json tartozik.
             MainContentArea.Content = new Views.HomeInfoView();
             EnsureRtsInstalled();
+
+            // ROUND16 - UJ: a passziv hardver-lekerdezo eszkozok (CPU-Z/GPU-Z/
+            // H.D. Sentinel/Resource Hacker) mostantol MINDIG, feltetel nelkul
+            // a hatterben beszerzodnek mar induláskor (nem kell hozza megnyitni
+            // az Eszkozok panelt) - lasd Services/ToolsBootstrap.cs. Ugyanez a
+            // hivas gondoskodik a RustDeskrol is, HA a fenti kerdesre "Igen"
+            // volt a valasz (vagy korabban mar bekapcsoltak a panelen).
+            _ = ToolsBootstrap.RunSilentlyAsync(LogToConsole);
 
             // v0.4.2 - LOG feldolgozo egyseg ELOKESZITESE (vazlat, lasd
             // Services/LogProcessor.cs): minden inditaskor letrehozza/

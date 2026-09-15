@@ -1,16 +1,22 @@
 <UserControl x:Class="RTS.Views.ToolsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Verzio: v0.6.1 - 2026-09-15
+    <!-- Verzio: v0.7.0 - 2026-09-15
          DRAFT - a "2.1 Eszkozok" kor elokeszitese. A korabbi stub (csak
          navigacios belepesi pont) helyett a tenyleges reszletes nezet
          (A2-be toltodik be, a 🔧 gomb nyitja - lasd MainWindow.xaml.cs).
 
-         Verzio v0.6.1 - a felhasznalo eldontotte: az "automatikus
-         telepites" IDE, a csavarkulcs-panelre kerul (a RustDesk is IDE
-         tartozik, a mar meglevo SetUpER-es telepites MELLETT, nem
-         helyette). A jelolonegyzet+"Alkalmaz" itt allitja az egyseges
-         auto-telepites kapcsolot (lasd ToolsSettingsService). -->
+         ROUND16 PONTOSITAS: a jelolonegyzet+"Alkalmaz" MOSTANTOL
+         KIZAROLAG a RustDesk automatikus telepiteset/beallitasat
+         vezerli - a CPU-Z/GPU-Z/H.D. Sentinel/Resource Hacker mindig,
+         kerdes nelkul automatikusan beszerzodik (lasd ToolsBootstrap.cs).
+
+         ROUND16 JAVITAS: a TxtSummary es a 4 nyers-riport TextBox
+         korabban NEM kapott explicit Foreground-ot, igy a WPF
+         alapertelmezett (fekete) szinnel jelent meg - a sotet temaban ez
+         olvashatatlan volt (lasd LordAthis 2026-09-15-i visszajelzese).
+         Mostantol mindegyik a temafuggo TextBrush-t hasznalja, ugyanugy,
+         ahogy a tobbi, mar korabban is helyes elem a nezetben. -->
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="15">
             <TextBlock Text="Eszkozok (hardver-lekerdezes)" Foreground="{DynamicResource SecondaryNeon}" FontSize="16" TextWrapping="Wrap" Margin="0,0,0,10"/>
@@ -24,7 +30,7 @@
             <Border Background="{DynamicResource SubPanelBgBrush}" CornerRadius="10" Padding="12" Margin="0,0,0,15">
                 <StackPanel>
                     <TextBlock Text="Gyors osszefoglalo" FontWeight="Bold" Foreground="{DynamicResource AccentNeon}" Margin="0,0,0,6"/>
-                    <TextBlock x:Name="TxtSummary" TextWrapping="Wrap" FontSize="13"/>
+                    <TextBlock x:Name="TxtSummary" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextBrush}"/>
                 </StackPanel>
             </Border>
 
@@ -32,19 +38,19 @@
                  (kattintasra bovul/csukodik), hogy a 4 nyers riport ne
                  zsufolja tele a felso reszt alapertelmezetten. -->
             <Expander Header="CPU-Z reszletek" Margin="0,0,0,8" Foreground="{DynamicResource TextBrush}">
-                <TextBox x:Name="TxtCpuRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11"
+                <TextBox x:Name="TxtCpuRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextBrush}"
                          MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Background="Transparent" BorderThickness="0"/>
             </Expander>
             <Expander Header="GPU-Z reszletek" Margin="0,0,0,8" Foreground="{DynamicResource TextBrush}">
-                <TextBox x:Name="TxtGpuRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11"
+                <TextBox x:Name="TxtGpuRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextBrush}"
                          MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Background="Transparent" BorderThickness="0"/>
             </Expander>
             <Expander Header="H.D. Sentinel (lemez-egeszseg) reszletek" Margin="0,0,0,8" Foreground="{DynamicResource TextBrush}">
-                <TextBox x:Name="TxtDiskRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11"
+                <TextBox x:Name="TxtDiskRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextBrush}"
                          MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Background="Transparent" BorderThickness="0"/>
             </Expander>
             <Expander Header="DXDIAG teljes riport" Margin="0,0,0,15" Foreground="{DynamicResource TextBrush}">
-                <TextBox x:Name="TxtDxDiagRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11"
+                <TextBox x:Name="TxtDxDiagRaw" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextBrush}"
                          MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Background="Transparent" BorderThickness="0"/>
             </Expander>
 
@@ -53,15 +59,18 @@
                 <StackPanel>
                     <TextBlock Text="Lekerdezo eszkozok allapota" FontWeight="Bold" Foreground="{DynamicResource AccentNeon}" Margin="0,0,0,4"/>
                     <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="11" FontStyle="Italic" Margin="0,0,0,10"
-                               Text="Ha egy eszkoz hianyzik, a lenti gombbal (vagy automatikusan, ha az alant bekapcsolt) letoltheto/telepitheto. A CPU-Z/GPU-Z/H.D. Sentinel/Resource Hacker portable modon, a sajat Apps\Tools\ mappaba kerul; a RustDesk rendszerszintu telepitest kap a SetUpER-en keresztul."/>
+                               Text="A CPU-Z/GPU-Z/H.D. Sentinel/Resource Hacker mindig automatikusan, kerdes nelkul beszerzodik (portable modon, a sajat Apps\Tools\ mappaba) - a lenti gombok csak kezi ujraprobalkozasra szolgalnak, ha valamiert meg nem sikerult volna. A RustDesk mas: rendszerszintu telepitest kap a SetUpER-en keresztul, es a lenti kapcsolo donti el, automatikusan telepszik-e."/>
                     <ItemsControl x:Name="ToolStatusList"/>
                 </StackPanel>
             </Border>
 
-            <!-- ───────── Automatikus telepites BE/KI kapcsolo ───────── -->
+            <!-- ───────── RustDesk automatikus telepites BE/KI kapcsolo ─────────
+                 ROUND16 PONTOSITAS: ez a kapcsolo KIZAROLAG a RustDeskre
+                 vonatkozik (lasd ToolsSettingsService.RustDeskAutoInstall) -
+                 a tobbi eszkozt nem erinti. -->
             <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,10,0,0">
                 <StackPanel Orientation="Horizontal">
-                    <CheckBox x:Name="ChkAutoInstall" Content="Eszkozok automatikus telepitese (CPU-Z, GPU-Z, H.D. Sentinel, Resource Hacker, RustDesk)"
+                    <CheckBox x:Name="ChkAutoInstall" Content="RustDesk automatikus telepitese es beallitasa"
                               Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" TextElement.FontSize="12"/>
                     <Button x:Name="BtnApplyAutoInstall" Content="Alkalmaz" Style="{StaticResource NeonButtonStyle}"
                             MinWidth="80" Height="30" Margin="15,0,0,0" Click="BtnApplyAutoInstall_Click"/>

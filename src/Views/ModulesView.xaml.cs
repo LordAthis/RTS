@@ -209,16 +209,29 @@ namespace RTS.Views
             Grid.SetColumn(btnPanel, 1);
             grid.Children.Add(btnPanel);
 
-            row.Child = grid;
-
             var detail = new TextBlock
             {
                 Visibility = Visibility.Collapsed,
                 Foreground = Brushes.LightGray,
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(14, 8, 14, 0)
+                Margin = new Thickness(2, 8, 2, 0)
             };
+
+            // ROUND16 JAVITAS: korabban a "detail" szoveg a bordertol (row)
+            // FUGGETLENUL, kulon elemkent kerult az "outer" StackPanelbe,
+            // ALATTA - igy a szep, zold kerettel rendelkezo doboz mindig
+            // csak a kis (osszecsukott) tartalom meretere gyult, a kinyitott
+            // reszletes leiras pedig keretezetlenul "logott ki" alola (lasd
+            // LordAthis 2026-09-15-i kepe: "a keretezes a kis megjelenitesen
+            // marad, levagva a tobbi adatot"). Javitas: a grid (cim+leiras+
+            // gombok) ES a detail EGYUTT, egy kozos StackPanel-ben kerul a
+            // row.Child-ba - igy a Border MOST MAR EGYUTT novekszik a
+            // kinyitott resszel, nem marad a kicsi meretnel.
+            var cardStack = new StackPanel();
+            cardStack.Children.Add(grid);
+            cardStack.Children.Add(detail);
+            row.Child = cardStack;
 
             row.MouseLeftButtonUp += (s, e) =>
             {
@@ -236,7 +249,6 @@ namespace RTS.Views
             };
 
             outer.Children.Add(row);
-            outer.Children.Add(detail);
             return outer;
         }
 

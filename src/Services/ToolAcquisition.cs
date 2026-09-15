@@ -26,6 +26,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RTS.Services
@@ -88,6 +89,23 @@ namespace RTS.Services
         // Ha az eszkoz hianyzik, letolti/kibontja a sajat Apps\Tools\<Eszkoz>\
         // mappajaba. Nem dob kivetelt kifele - mindig egy vilagos,
         // magyar uzenetet ad vissza (log-panelbe irhato).
+        // ROUND16 JAVITAS: LordAthis logjai (2026-09-15) egy versenyhelyzetet
+        // (race condition) mutattak ki - ha KET fuggetlen hivo (pl. a
+        // ToolsView panel-megnyitasi auto-beszerzese ES a "Frissites"
+        // gombra kattintva inditott HardwareQueryService.RefreshAsync)
+        // NAGYJABOL EGYSZERRE hivja meg EnsureAsync-et UGYANARRA az
+        // eszkozre, mindketto atmegy az IsPresent() ellenorzesen (meg egyik
+        // sem toltotte le), majd mindketto UGYANABBA a celmappaba probal
+        // kicsomagolni/irni - ez okozta a naploban latott "The process
+        // cannot access the file... because it is being used by another
+        // process" hibat a CPU-Z-nel. A lenti semafor egyszerre csak EGY
+        // beszerzest enged at (barmelyik eszkozrol legyen is szo - ezek
+        // amugy is ritka, gyors muveletek, nem eri meg eszkozonkent kulon
+        // zart bevezetni), es a zar MEGSZERZESE UTAN UJRA ellenorzi az
+        // IsPresent()-et, hatha a masik, korabban varakozo hivo idokozben
+        // mar vegzett.
+        private static readonly SemaphoreSlim AcquireLock = new(1, 1);
+
         public static async Task<ToolAcquisitionResult> EnsureAsync(ToolId tool, Action<string>? log = null)
         {
             void Log(string m) => log?.Invoke($"[Eszkozok] {m}");
@@ -97,12 +115,20 @@ namespace RTS.Services
                 return new ToolAcquisitionResult { Ok = true, Message = $"{tool} mar rendelkezesre all." };
             }
 
-            string dir = ToolDir(tool);
-            Directory.CreateDirectory(ToolsDir);
-            ForceDeleteDirectory(dir); // csak arra az esetre, ha korabban hibasan/felig maradt le
-
+            await AcquireLock.WaitAsync();
             try
             {
+                // Ujra-ellenorzes a zar megszerzese UTAN - lehet, hogy egy
+                // masik, korabban varakozo hivas idokozben mar bepotolta.
+                if (IsPresent(tool))
+                {
+                    return new ToolAcquisitionResult { Ok = true, Message = $"{tool} mar rendelkezesre all." };
+                }
+
+                string dir = ToolDir(tool);
+                Directory.CreateDirectory(ToolsDir);
+                ForceDeleteDirectory(dir); // csak arra az esetre, ha korabban hibasan/felig maradt le
+
                 switch (tool)
                 {
                     case ToolId.ResourceHacker:
@@ -125,6 +151,10 @@ namespace RTS.Services
             {
                 Log($"Hiba a(z) {tool} beszerzesekor: {ex.Message}");
                 return new ToolAcquisitionResult { Ok = false, Message = $"Hiba a(z) {tool} beszerzesekor: {ex.Message}" };
+            }
+            finally
+            {
+                AcquireLock.Release();
             }
         }
 
@@ -181,21 +211,44 @@ namespace RTS.Services
                 };
             }
 
-            // A GPU-Z tobb, mirror-fuggo cimen is elerheto - ezt a
-            // techpowerup oldal ("techpowerup-dl") mar korabban
-            // dokumentalt mintaja adja (lasd feladatok.md).
+            // ROUND16 - MEGERoSITETT HIBA: LordAthis elo Windows-gepen
+            // futtatva 404-et kapott erre a cimre ("Response status code
+            // does not indicate success: 404"). Sajat WebFetch-ellenorzesem
+            // is ellentmondasos/elavult adatot adott vissza a techpowerup
+            // oldalrol (2020-as 2.36.0 verziot mutatott, holott az elo
+            // regex-lekerdezes helyesen 2.70.0-t talal) - vagyis a letoltesi
+            // cim PONTOS mintajat innen, elo Windows-teszt nelkul NEM tudom
+            // megbizhatoan ujra-kitalalni. Ahelyett, hogy egy MASIK,
+            // ugyanugy ellenorizetlen mintat probalnek beegetni, a hibat
+            // MOST UGYANUGY kezeljuk, mint a verziószam-fel-nem-ismerest:
+            // egyertelmu uzenet + a letoltesi oldal megnyitasa kezi
+            // letoltesre - SOHA nem all le csendben/hibasan, es nem
+            // talalgat tovabb egy mar bizonyitottan hibas mintat.
             string exeUrl = $"https://us1-dl.techpowerup.com/files/GPU-Z.{version}.exe";
             string exePath = Path.Combine(targetDir, $"GPU-Z.{version}.exe");
 
-            Directory.CreateDirectory(targetDir);
-            using var http = new HttpClient();
-            http.Timeout = TimeSpan.FromMinutes(3);
-            log($"GPU-Z letoltese: {exeUrl}");
-            byte[] bytes = await http.GetByteArrayAsync(exeUrl);
-            await File.WriteAllBytesAsync(exePath, bytes);
+            try
+            {
+                Directory.CreateDirectory(targetDir);
+                using var http = new HttpClient();
+                http.Timeout = TimeSpan.FromMinutes(3);
+                log($"GPU-Z letoltese: {exeUrl}");
+                byte[] bytes = await http.GetByteArrayAsync(exeUrl);
+                await File.WriteAllBytesAsync(exePath, bytes);
 
-            log("GPU-Z sikeresen letoltve.");
-            return new ToolAcquisitionResult { Ok = true, Message = "GPU-Z kesz.", ExecutablePath = exePath };
+                log("GPU-Z sikeresen letoltve.");
+                return new ToolAcquisitionResult { Ok = true, Message = "GPU-Z kesz.", ExecutablePath = exePath };
+            }
+            catch (Exception ex)
+            {
+                log($"GPU-Z letoltese sikertelen ({exeUrl}): {ex.Message} - a kitalalt fajlnev-minta idokozben megvaltozhatott.");
+                OpenInBrowser(GpuZPageUrl);
+                return new ToolAcquisitionResult
+                {
+                    Ok = false,
+                    Message = "GPU-Z automatikus letoltese sikertelen (a letoltesi cim mintaja idokozben megvaltozhatott) - a letoltesi oldal megnyilt, kerlek toltsd le kezzel a Tools\\GpuZ mappaba."
+                };
+            }
         }
 
         private static async Task<string?> TryFetchVersionAsync(string pageUrl, Regex pattern, Action<string> log, string toolName)

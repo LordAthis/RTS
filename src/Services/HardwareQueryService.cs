@@ -61,21 +61,34 @@ namespace RTS.Services
         // A "Informaciok frissitese" gomb hivja - ez inditja el TENYLEGESEN
         // a kulso eszkozoket. Minden lepes fuggetlen try/catch-ben fut,
         // hogy egy sikertelen eszkoz ne akaszsza meg a tobbit.
+        //
+        // ROUND16 JAVITAS: korabban itt volt egy "Log(m) => log($"[Eszkozok]
+        // {m}")" wrapper, amit TOVABBADTUNK a Query*Async metodusoknak - azok
+        // viszont belul EGYENESEN meghivjak a ToolAcquisition.EnsureAsync-et,
+        // ami SAJAT MAGA IS hozzafuzi a "[Eszkozok] " elotagot minden altala
+        // kiirt sorhoz. Ket egymasba agyazott elotag-hozzaado reteg -> a
+        // naploban duplan megjeleno "[Eszkozok] [Eszkozok] ..." sorok
+        // (lasd LordAthis 2026-09-15-i logja). Javitas: mostantol a NYERS
+        // (elotag nelkuli) log-fuggvenyt adjuk tovabb a Query*Async
+        // metodusoknak (igy a bennuk levo EnsureAsync-hivasok csak EGYSZER
+        // kapjak meg az elotagot), a HardwareQueryService SAJAT, kozvetlen
+        // uzenetei pedig (a Query*Async-okon beluli hibauzenetek + a lenti
+        // zaro sor) most mar SZO SZERINT tartalmazzak az elotagot.
         public static async Task<HardwareInfo> RefreshAsync(Action<string>? log = null)
         {
-            void Log(string m) => log?.Invoke($"[Eszkozok] {m}");
+            void RawLog(string m) => log?.Invoke(m);
 
             var info = LoadCached() ?? new HardwareInfo();
             info.QueriedAtUtc = DateTime.UtcNow;
 
-            info.Machine = QueryMachineInfo(Log);
-            info.Cpu = await QueryCpuZAsync(Log);
-            info.Gpu = await QueryGpuZAsync(Log);
-            info.Disk = await QueryHdSentinelAsync(Log);
-            info.DxDiag = await QueryDxDiagAsync(Log);
+            info.Machine = QueryMachineInfo(RawLog);
+            info.Cpu = await QueryCpuZAsync(RawLog);
+            info.Gpu = await QueryGpuZAsync(RawLog);
+            info.Disk = await QueryHdSentinelAsync(RawLog);
+            info.DxDiag = await QueryDxDiagAsync(RawLog);
 
             Save(info);
-            Log("Lekerdezes kesz, eredmeny elmentve: " + DataFilePath);
+            RawLog("[Eszkozok] Lekerdezes kesz, eredmeny elmentve: " + DataFilePath);
             return info;
         }
 
@@ -94,7 +107,7 @@ namespace RTS.Services
             }
             catch (Exception ex)
             {
-                log("Hiba az OS-adatok lekerdezesekor: " + ex.Message);
+                log("[Eszkozok] Hiba az OS-adatok lekerdezesekor: " + ex.Message);
             }
 
             try
@@ -109,7 +122,7 @@ namespace RTS.Services
             }
             catch (Exception ex)
             {
-                log("Hiba a felhasznaloi fiokok lekerdezesekor: " + ex.Message);
+                log("[Eszkozok] Hiba a felhasznaloi fiokok lekerdezesekor: " + ex.Message);
             }
 
             return result;
@@ -154,7 +167,7 @@ namespace RTS.Services
             }
             catch (Exception ex)
             {
-                log("CPU-Z lekerdezes hiba: " + ex.Message);
+                log("[Eszkozok] CPU-Z lekerdezes hiba: " + ex.Message);
                 result.Error = ex.Message;
             }
             return result;
@@ -236,7 +249,7 @@ namespace RTS.Services
             }
             catch (Exception ex)
             {
-                log("GPU-Z lekerdezes hiba: " + ex.Message);
+                log("[Eszkozok] GPU-Z lekerdezes hiba: " + ex.Message);
                 result.Error = ex.Message;
             }
             return result;
@@ -288,7 +301,7 @@ namespace RTS.Services
             }
             catch (Exception ex)
             {
-                log("H.D. Sentinel lekerdezes hiba: " + ex.Message);
+                log("[Eszkozok] H.D. Sentinel lekerdezes hiba: " + ex.Message);
                 result.Error = ex.Message;
             }
             return result;
@@ -335,7 +348,7 @@ namespace RTS.Services
             }
             catch (Exception ex)
             {
-                log("DXDIAG lekerdezes hiba: " + ex.Message);
+                log("[Eszkozok] DXDIAG lekerdezes hiba: " + ex.Message);
                 result.Error = ex.Message;
             }
             return result;
