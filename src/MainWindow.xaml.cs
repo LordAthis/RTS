@@ -38,6 +38,23 @@ namespace RTS
             // de nem tunt fel" zavarban).
             LogToConsole($"RTS verzio: v{RTS.Models.RtsVersion.Version} ({RTS.Models.RtsVersion.BuildDate})");
             ShowHomeStatus();
+
+            if (!ToolsSettingsService.HasBeenAsked)
+            {
+                var answer = MessageBox.Show(
+                    "Szeretned, hogy az RTS automatikusan letoltse/telepitse a hasznalathoz szukseges " +
+                    "segedeszkozoket (CPU-Z, GPU-Z, H.D. Sentinel, Resource Hacker, RustDesk), amikor " +
+                    "eloszor szukseg lesz rajuk?\n\n" +
+                    "Kesobb barmikor at tudod allitani az Eszkozok (🔧) panelen.",
+                    "RTS - Automatikus eszkoz-telepites",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                ToolsSettingsService.Save(answer == MessageBoxResult.Yes);
+                LogToConsole(answer == MessageBoxResult.Yes
+                    ? "Automatikus eszkoz-telepites bekapcsolva (elso-inditasi valasz)."
+                    : "Automatikus eszkoz-telepites kikapcsolva (elso-inditasi valasz) - kesobb az Eszkozok panelen bekapcsolhato.");
+            }
+            B2Content.Content = new Views.ToolsSummaryView();
             // Verzio v0.5.4 - 2026-09-14 - JAVITAS: az RTS-info.json tartalma
             // TEVESEN a B2-be kerult az elozo korben - a helyes cel az A2
             // (ez a Home/hazikó kezdolapja is, lasd BtnHome lejjebb). A B2

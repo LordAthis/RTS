@@ -35,6 +35,7 @@
          (System.Drawing-ot sem igenyel), MIT licenc. A NuGet-restore-t a
          GitHub Actions windows-latest runner vegzi buildkor. -->
     <PackageReference Include="QRCoder" Version="1.8.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
