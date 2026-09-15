@@ -1,3 +1,16 @@
+// Verzio: v0.5.9.1 - 2026-09-15
+// HOTFIX (round15): a v0.5.9-es nagy atalakitas (190a634) ujra bevezette
+// a mar egyszer (round23-ban, a ModuleMenuView.xaml.cs-ben) kijavitott
+// hibaosztalyt: ez a fajl EGYSZERRE importalja a System.Windows.Controls
+// es az RTS.Models nevteret, mindketto definial egy "MenuItem" nevu
+// tipust (WPF menu-vezerlo, illetve a sajat modul-adatmodell) - a csupasz
+// "MenuItem" hasznalata ezert CS0104 forditasi hibat ad ("ambiguous
+// reference"), pontosan ugyanugy, mint korabban a ModuleMenuView.xaml.cs-
+// ben. A ModuleMenuView.xaml.cs mar tartalmazza a megoldast (lasd ott:
+// "using RtsMenuItem = RTS.Models.MenuItem;") - ez a hotfix UGYANEZT az
+// aliast vezeti be ide is, es a ket erintett sorban lecsereli a csupasz
+// "MenuItem" hasznalatot "RtsMenuItem"-re. Funkcionalis valtozas nincs.
+//
 // Verzio: v0.5.9 - 2026-09-14
 // NAGY ATALAKITAS: korabban ez a nezet REPO-kat sorolt fel (pl. "IWS" EGY
 // sorkent, egyetlen "Futtatás (Teljes Modul)" gombbal) - a felhasznalo
@@ -22,6 +35,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using RTS.Models;
 using RTS.Services;
+using RtsMenuItem = RTS.Models.MenuItem;
 
 namespace RTS.Views
 {
@@ -34,8 +48,8 @@ namespace RTS.Views
         {
             public string SortKey = "";
             public ModuleInfo Repo = null!;
-            public MenuItem? Item;
-            public List<MenuItem> Siblings = new(); // ugyanannak a reponak tobbi modulja
+            public RtsMenuItem? Item;
+            public List<RtsMenuItem> Siblings = new(); // ugyanannak a reponak tobbi modulja
         }
 
         public ModulesView()
