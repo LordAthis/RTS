@@ -57,9 +57,32 @@ namespace RTS.Models
     // repok (IWS, DeepSysTools, WinRegTools) EGYEDI modulokra bontva
     // jelennek meg, a tobbi repo egyelore repo-szinten marad (ugyanabban
     // a listaban), amig azokhoz is nem keszul rts-menu.json.
+    // 0.5.10 - ESZKOZOK PANEL UJRAEPITESE (round17 + round18):
+    // (1) A lekerdezes es a beszerzes teljesen szetvalt. Az "Informaciok
+    //     frissitese" gomb MOSTANTOL KIZAROLAG lekerdez - soha nem telepit
+    //     es nem tolt le semmit. A beszerzes csak az elso indulaskor, vagy
+    //     a felhasznalo sajat gombnyomasara fut.
+    // (2) A hardver-lekerdezes motorja kulonallo PowerShell-scriptekre
+    //     bomlott (Scripts\Hw\Get-*.ps1), amiket egy orchestrator fuz
+    //     ossze; az alap minden esetben a Windows sajat WMI/CIM adatbazisa,
+    //     a kulso eszkozok csak melyitik a kepet.
+    // (3) Rendszerszintu eszkoz-felismeres (ToolDetection): a sajat mappa
+    //     mellett a registry App Paths / Uninstall kulcsait es a Program
+    //     Files utvonalakat is nezi - igy a mar telepitett programokat nem
+    //     akarja ujra telepiteni.
+    // (4) A beszerzes a Windows csomagkezelojere (winget) valt, mert a
+    //     techpowerup (GPU-Z) Cloudflare mogott, kétlépcsős POST-tal
+    //     szolgal ki, es fix letoltesi URL nem letezik.
+    // (5) Uj eszkozok a panelen: LibreHardwareMonitor (ajanlott, csendes
+    //     homerseklet-/ventilator-lekerdezes sajat WMI-nevteren at) es
+    //     HWMonitor. Minden sor allapotfuggo gombokat kap: Telepites vagy
+    //     Megnyitas, plusz Frissites es Uj gyorsjelentes.
+    // (6) Uj gomb: "Adatok kuldese uzenetben" - a hardver-riport elkuldese
+    //     a DiagMailer-en keresztul a beallitott cimre.
+    // (7) A MOD-listaban a nem kompatibilis modulok Futtatas gombja inaktiv.
     public static class RtsVersion
     {
-        public const string Version = "0.5.9";
-        public const string BuildDate = "2026-09-14";
+        public const string Version = "0.5.10";
+        public const string BuildDate = "2026-09-16";
     }
 }

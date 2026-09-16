@@ -1,4 +1,4 @@
-# Verzio: v1.0.0 - 2026-09-16
+# Verzio: v1.1.0 - 2026-09-16
 # RTS - hardver-lekerdezes, RESZ-SCRIPT: processzor (CPU).
 #
 # ONALLOAN IS FUTTATHATO. Alap forras: WMI/CIM (Win32_Processor) - ez
@@ -78,19 +78,34 @@ if ($result.cores -gt 0 -and $result.name -ne "") { $result.summary = "$($result
 # ha a hivo atadott egy letezo exe-t.
 if ($CpuZExe -ne "" -and (Test-Path $CpuZExe)) {
     try {
+        # ROUND18: a CPU-Z a riportot ASZINKRON is befejezheti, ezert a
+        # folyamat kilepese UTAN is varunk meg a fajlra egy rovid ciklusban.
+        # A korabbi valtozat azonnal feladta, es "A CPU-Z riport-fajl nem
+        # jott letre" uzenetet adott (lasd LordAthis 2026-09-16-i logja).
+        # A hibauzenet mostantol azt is megmondja, MELYIK exe futott es
+        # milyen kilepesi koddal - igy legkozelebb nem kell talalgatni.
         $tmpBase = Join-Path $env:TEMP ("rts_cpuz_" + [Guid]::NewGuid().ToString("N"))
+        $txt = "$tmpBase.txt"
+
         $proc = Start-Process -FilePath $CpuZExe -ArgumentList "-txt=`"$tmpBase`"" `
                               -WindowStyle Hidden -PassThru -ErrorAction Stop
         $null = $proc.WaitForExit(60000)
-        if (-not $proc.HasExited) { try { $proc.Kill() } catch { } }
+        $exitCode = -1
+        if ($proc.HasExited) { try { $exitCode = $proc.ExitCode } catch { } }
+        else { try { $proc.Kill() } catch { } }
 
-        $txt = "$tmpBase.txt"
+        $waited = 0
+        while (-not (Test-Path $txt) -and $waited -lt 15) {
+            Start-Sleep -Seconds 1
+            $waited++
+        }
+
         if (Test-Path $txt) {
             $result.raw_text   = [IO.File]::ReadAllText($txt)
             $result.raw_source = "CPU-Z ($CpuZExe)"
             Remove-Item $txt -Force -ErrorAction SilentlyContinue
         } else {
-            $result.errors += "A CPU-Z riport-fajl nem jott letre (-txt kapcsolo)."
+            $result.errors += "A CPU-Z riport-fajl nem jott letre (-txt kapcsolo). Futtatott fajl: $CpuZExe, kilepesi kod: $exitCode. A lenti adatok a Windows sajat WMI-forrasabol keszultek, tehat a lekerdezes ettol fuggetlenul teljes."
         }
     } catch { $result.errors += "CPU-Z: $($_.Exception.Message)" }
 }

@@ -1,4 +1,4 @@
-# Verzio: v1.0.0 - 2026-09-16
+# Verzio: v1.1.0 - 2026-09-16
 # RTS - kulso segedeszkoz TELEPITESE / FRISSITESE a Windows sajat
 # csomagkezelojevel (winget). Ez a script KIZAROLAG a beszerzesert felel -
 # lekerdezest NEM vegez (lasd Get-*Info.ps1). A ketto szetvalasztasa a
@@ -24,6 +24,26 @@
 #  4. Ha a wingetet nem talaljuk (pl. regi Windows), NEM hibazunk el
 #     csendben: egyertelmu, gepi uton feldolgozhato JSON valaszt adunk,
 #     amibol a hivo eldontheti, mit irjon ki a felhasznalonak.
+#
+# ROUND18 JAVITAS - "A winget katalogusaban egyik megadott csomag-azonosito
+# sem talalhato" HIBAS UZENET. LordAthis 2026-09-16-i logja szerint a
+# LibreHardwareMonitor telepitese ezzel az uzenettel allt le. Utananeztem a
+# Microsoft hivatalos winget-pkgs katalogusaban: a
+# "LibreHardwareMonitor.LibreHardwareMonitor" azonosito NAGYON IS LETEZIK
+# (0.9.3 es 0.9.4 verzioval) - es ugyanigy letezik mind a negy tobbi is
+# (TechPowerUp.GPU-Z, CPUID.CPU-Z, CPUID.HWMonitor,
+# AngusJohnson.ResourceHacker). Vagyis NEM az azonositokkal volt a baj,
+# hanem AZ EN ELLENORZO HIVASOMMAL:
+#
+# a "winget show" parancsnak atadtam a "--accept-package-agreements" es a
+# "--disable-interactivity" kapcsolot is, holott azok az install/upgrade
+# parancsokhoz valok. Az ismeretlen kapcsolotol a winget nem nullas
+# kilepesi koddal ter vissza, az en feltetelem pedig ezt "a csomag nem
+# letezik"-kent ertelmezte. Javitas: MOSTANTOL PARANCSONKENT csak a hozza
+# TENYLEGESEN illo kapcsolokat adjuk at (lasd $ReadArgs / $WriteArgs), es
+# a feloldas NEM blokkolo: ha a "show" barmi okbol nem ad egyertelmu
+# valaszt, az ELSO jelolt azonositoval dolgozunk tovabb - a tenyleges
+# telepites hibauzenete ugyis pontosan megmondja, ha valami nem stimmel.
 
 [CmdletBinding()]
 param(
@@ -97,7 +117,15 @@ if (-not $winget) {
 }
 $result.winget_available = $true
 
-$commonArgs = @("--accept-source-agreements", "--accept-package-agreements", "--disable-interactivity")
+# OLVASO parancsok (show / list): CSAK a forras-felteteleket fogadjuk el.
+# A "--accept-package-agreements" es a "--disable-interactivity" ezeknel
+# ismeretlen kapcsolo lenne, amitol a winget hibakoddal lep ki - pontosan
+# ez okozta a round18-ban javitott hibas "nem talalhato" uzenetet.
+$ReadArgs  = @("--accept-source-agreements")
+
+# IRO parancsok (install / upgrade): itt van helye a csomag-feltetelek
+# elfogadasanak es az interaktivitas kikapcsolasanak.
+$WriteArgs = @("--accept-source-agreements", "--accept-package-agreements", "--silent", "--disable-interactivity")
 
 function Invoke-Winget {
     param([string[]]$Arguments)
@@ -125,32 +153,37 @@ function Invoke-Winget {
 # talalgatunk tovabb - egyertelmu uzenettel visszaterunk.
 $resolvedId = ""
 foreach ($cand in $candidates) {
-    $show = Invoke-Winget -Arguments (@("show", "--id", $cand, "--exact") + $commonArgs)
+    $show = Invoke-Winget -Arguments (@("show", "--id", $cand, "--exact") + $ReadArgs)
     $showOut = "$($show.out)"
-    if ($show.code -eq 0 -and $showOut -notmatch "No package found|Nem talalhato") {
+    # Akkor fogadjuk el, ha a winget 0-val tert vissza ES a kimenet nem
+    # mondja kifejezetten, hogy nincs talalat.
+    if ($show.code -eq 0 -and $showOut -notmatch "No package found|Nem talalhato|No packages found") {
         $resolvedId = $cand
         break
     }
 }
 
 if ($resolvedId -eq "") {
-    $result.message = "A winget katalogusaban egyik megadott csomag-azonosito sem talalhato ($($candidates -join ', ')) - lehet, hogy a csomag idokozben atkerult mas azonositora. Telepitsd az eszkozt kezzel a hivatalos letoltesi oldalarol."
-    $result.errors += "package_not_found"
-    $json = $result | ConvertTo-Json -Depth 5
-    if ($OutFile -ne "") { try { [IO.File]::WriteAllText($OutFile, $json, [Text.UTF8Encoding]::new($false)) } catch { } }
-    $json
-    exit 0
+    # NEM allunk le: az elso jelolttel dolgozunk tovabb. A "show" sokfele
+    # okbol adhat nem-nullas kodot (nyelvi elteres, katalogus-frissites,
+    # halozati hiba, kapcsolo-elteres a winget adott verziojaban) - ezek
+    # egyike sem bizonyitja, hogy a csomag nem letezik. A tenyleges
+    # install/upgrade hibauzenete pontos lesz, ha tenyleg nincs meg.
+    $resolvedId = $candidates[0]
+    $result.errors += "resolve_uncertain"
+}
+else {
+    $result.resolved = $true
 }
 
 $PackageId            = $resolvedId
 $result.package_id    = $resolvedId
-$result.resolved      = $true
 
 # ───────────────────── Telepitett allapot lekerdezese ─────────────────────
 # FONTOS: a "winget list" akkor is 0-tol elteroret ad vissza (vagy "No
 # installed package found" szoveget ir), ha a csomag NINCS telepitve -
 # ezert BOTH a kilepesi kodot es a szoveget vizsgaljuk.
-$listRes = Invoke-Winget -Arguments (@("list", "--id", $PackageId, "--exact") + $commonArgs)
+$listRes = Invoke-Winget -Arguments (@("list", "--id", $PackageId, "--exact") + $ReadArgs)
 $listOut = "$($listRes.out)"
 
 if ($listRes.code -eq 0 -and $listOut -notmatch "No installed package found" -and $listOut -notmatch "Nem talalhato" -and $listOut -match [regex]::Escape($PackageId)) {
@@ -169,13 +202,13 @@ if ($listRes.code -eq 0 -and $listOut -notmatch "No installed package found" -an
 
 # ───────────────────── Elerheto frissites vizsgalata ─────────────────────
 if ($result.installed) {
-    $upRes = Invoke-Winget -Arguments (@("upgrade", "--id", $PackageId, "--exact", "--include-unknown") + $commonArgs + @("--dry-run"))
+    $upRes = Invoke-Winget -Arguments (@("upgrade", "--id", $PackageId, "--exact", "--include-unknown") + $ReadArgs)
     $upOut = "$($upRes.out)"
     # A --dry-run nem minden winget-verzioban letezik; ha nem tamogatott,
     # a sima "upgrade" listazassal probalkozunk (az nem telepit, csak kiir,
     # ha nincs megadva a csomag telepitesi szandeka).
     if ($upOut -match "unrecognized|ismeretlen|Unknown argument") {
-        $upRes = Invoke-Winget -Arguments (@("upgrade") + $commonArgs)
+        $upRes = Invoke-Winget -Arguments (@("upgrade") + $ReadArgs)
         $upOut = "$($upRes.out)"
     }
     if ($upOut -match [regex]::Escape($PackageId) -and $upOut -notmatch "No applicable upgrade|Nincs elerheto") {
@@ -196,7 +229,7 @@ switch ($Action) {
         if ($result.installed) {
             $result.message = "Mar telepitve van ($($result.installed_version)) - nem tortent valtozas."
         } else {
-            $r = Invoke-Winget -Arguments (@("install", "--id", $PackageId, "--exact", "--silent") + $commonArgs)
+            $r = Invoke-Winget -Arguments (@("install", "--id", $PackageId, "--exact") + $WriteArgs)
             $result.exit_code = $r.code
             if ($r.code -eq 0) {
                 $result.installed = $true
@@ -214,7 +247,7 @@ switch ($Action) {
         } elseif (-not $result.update_available) {
             $result.message = "Naprakesz ($($result.installed_version)) - nincs elerheto frissites."
         } else {
-            $r = Invoke-Winget -Arguments (@("upgrade", "--id", $PackageId, "--exact", "--silent") + $commonArgs)
+            $r = Invoke-Winget -Arguments (@("upgrade", "--id", $PackageId, "--exact") + $WriteArgs)
             $result.exit_code = $r.code
             if ($r.code -eq 0) {
                 $result.changed          = $true

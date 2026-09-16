@@ -1,4 +1,4 @@
-// Verzio: v2.0.0 - 2026-09-16
+// Verzio: v2.1.0 - 2026-09-16
 // ROUND17 ATALAKITAS - az Eszkozok (csavarkulcs) panel logikaja.
 //
 // LordAthis 2026-09-16-i kerese, szo szerint teljesitve:
@@ -189,6 +189,28 @@ namespace RTS.Views
             Log(enabled
                 ? "[RustDesk] Automatikus telepites es beallitas BEKAPCSOLVA."
                 : "[RustDesk] Automatikus telepites es beallitas KIKAPCSOLVA - a RustDesk mostantol csak a sajat sora melletti \"Telepites\" gombbal telepszik.");
+        }
+
+        // ROUND18 - LordAthis 2026-09-16-i kerese: "Plusz gomb (...), az
+        // osszegyujtott gepadatok elkuldese... (DiagMailer-el mehet ez is a
+        // beallitott cimre!)". A tenyleges osszeallitast es kuldest a
+        // DiagMailerLauncher.SendHardwareReport vegzi.
+        private void BtnSendReport_Click(object sender, RoutedEventArgs e)
+        {
+            BtnSendReport.IsEnabled = false;
+            try
+            {
+                var (ok, message) = DiagMailerLauncher.SendHardwareReport(Log);
+                Log(message);
+            }
+            catch (Exception ex)
+            {
+                Log("[DiagMailer] Hiba a hardver-riport kuldesekor: " + ex.Message);
+            }
+            finally
+            {
+                BtnSendReport.IsEnabled = true;
+            }
         }
 
         private void BtnRecheckTools_Click(object sender, RoutedEventArgs e)

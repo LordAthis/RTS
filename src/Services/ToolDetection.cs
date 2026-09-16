@@ -1,4 +1,4 @@
-// Verzio: v1.0.0 - 2026-09-16
+// Verzio: v1.1.0 - 2026-09-16
 // UJ SZOLGALTATAS (round17) - a LEGFONTOSABB javitas gyokere.
 //
 // A PROBLEMA, amit megold (LordAthis 2026-09-15/16-i visszajelzese):
@@ -18,6 +18,22 @@
 //
 // SEMMIT nem tolt le, SEMMIT nem telepit es SEMMIT nem indit el - csak
 // megnezi, mi van a gepen. A beszerzes kulon felelos (ToolAcquisition).
+//
+// ROUND18 JAVITAS - "A HDSentinel telepito ismet ketszer probalt elindulni"
+// (LordAthis, 2026-09-16). A gyoker-ok: a round16-os hibas letoltes a
+// "hdsentinel_setup.zip"-et (azaz a TELEPITOT) csomagolta ki az
+// Apps\Tools\HdSentinelFree\ mappaba, es az ott MARADT. A round17-es
+// felismeres ezt megtalalta, "mar megvan"-kent jelentette, a lekerdezes
+// pedig ezt a TELEPITOT inditotta el a riport-kapcsoloval - amitol
+// termeszetesen a telepito-varazslo jott fel. (A naplo is ezt mutatja:
+// "A H.D. Sentinel riport-fajl nem jott letre (-r es /REPORT= kapcsolo is
+// sikertelen)".)
+//
+// Javitas: az IsInstallerExecutable() felismeri a telepito-jellegu
+// fajlneveket (setup, install, unins, _inst, update...), es az ilyeneket
+// a kereses ATUGORJA. Ha egy mappaban CSAK telepito van, az a mappa ugy
+// szamit, mintha ures lenne - igy a kereses tovabblep a registry es a
+// Program Files agakra, ahol a VALODI, telepitett program van.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -318,23 +334,68 @@ namespace RTS.Services
         }
 
         // ───────────────────────────── Segedfuggvenyek ─────────────────────────────
+        // Telepito-jellegu fajlnevek. Egy telepito SOHA nem hasznalhato
+        // riport-forraskent: a riport-kapcsolot nem ismeri fel, ezert
+        // egyszeruen elinditja a telepito-varazslot (lasd a fajl fejlecet).
+        private static readonly string[] InstallerNameMarkers =
+        {
+            "setup", "install", "unins", "_inst", "instal", "update", "updater", "patch"
+        };
+
+        public static bool IsInstallerExecutable(string exePath)
+        {
+            try
+            {
+                string name = Path.GetFileNameWithoutExtension(exePath)
+                    .Replace("-", "").Replace("_", "").Replace(" ", "")
+                    .ToLowerInvariant();
+
+                foreach (string marker in InstallerNameMarkers)
+                {
+                    string m = marker.Replace("_", "");
+                    if (name.Contains(m)) return true;
+                }
+                return false;
+            }
+            catch { return false; }
+        }
+
         private static string? FindExeIn(string dir, string[] nameHints)
         {
             try
             {
                 if (!Directory.Exists(dir)) return null;
-                var all = Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories);
+                var all = Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories)
+                    // ROUND18: a telepitoket KISZURJUK - ezek nem tudnak
+                    // riportot adni, csak a telepito-varazslot nyitjak meg.
+                    .Where(f => !IsInstallerExecutable(f))
+                    .ToArray();
                 if (all.Length == 0) return null;
 
                 foreach (string hint in nameHints)
                 {
                     string needle = hint.Replace("-", "").Replace(" ", "").Replace("_", "").ToLowerInvariant();
-                    var match = all.FirstOrDefault(f =>
+                    var matches = all.Where(f =>
                         Path.GetFileNameWithoutExtension(f)
                             .Replace("-", "").Replace(" ", "").Replace("_", "")
                             .ToLowerInvariant()
-                            .Contains(needle));
-                    if (match != null) return match;
+                            .Contains(needle))
+                        .ToArray();
+                    if (matches.Length == 0) continue;
+
+                    // ROUND18: 64 bites rendszeren a 64 bites valtozatot
+                    // valasztjuk, ha van. A CPU-Z hordozhato csomagjaban pl.
+                    // egyszerre van cpuz_x32.exe es cpuz_x64.exe - eddig az
+                    // abc-sorrendben elso (x32) nyert, ami 64 bites gepen
+                    // kevesebbet lat a hardverbol.
+                    if (Environment.Is64BitOperatingSystem)
+                    {
+                        var x64 = matches.FirstOrDefault(f =>
+                            Path.GetFileNameWithoutExtension(f).ToLowerInvariant().Contains("x64")
+                            || Path.GetFileNameWithoutExtension(f).ToLowerInvariant().Contains("64"));
+                        if (x64 != null) return x64;
+                    }
+                    return matches[0];
                 }
 
                 // Szandekosan NEM esunk vissza "az elso barmilyen exe"-re:

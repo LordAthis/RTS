@@ -1,4 +1,4 @@
-# Verzio: v1.0.0 - 2026-09-16
+# Verzio: v1.1.0 - 2026-09-16
 # RTS - hardver-lekerdezes, RESZ-SCRIPT: gep / OS / alaplap / BIOS / memoria.
 #
 # ONALLOAN IS FUTTATHATO (ezt kerte a felhasznalo: "minden lekerdezes
@@ -146,6 +146,40 @@ $summaryParts = @()
 if ($result.os_caption -ne "") { $summaryParts += $result.os_caption }
 if ($result.ram_total_gb -gt 0) { $summaryParts += "$($result.ram_total_gb) GB RAM" }
 $result.summary = ($summaryParts -join " | ")
+
+# ───────────────────── Nyers, olvashato nezet ─────────────────────
+# ROUND18 JAVITAS: ez a szekcio korabban NEM allitott be raw_text-et, csak
+# summary-t - ezert a felulet "Rendszer, alaplap, memoria" lenyiloja
+# "Nincs adat."-ot mutatott, holott az adatok megvoltak (LordAthis
+# 2026-09-16-i kepe). A tobbi resz-script mindig adott raw_text-et; ez
+# egyszeruen kimaradt.
+$result.available  = $true
+$result.raw_source = "WMI"
+
+$lines = @()
+$lines += "Forras: Windows WMI/CIM"
+$lines += ""
+$lines += "Gep            : $($result.machine_name)"
+$lines += "Gyarto / modell: $($result.manufacturer) $($result.model)"
+$lines += "Alaplap        : $($result.baseboard)"
+$lines += "BIOS           : $($result.bios)  ($($result.bios_date))"
+$lines += ""
+$lines += "Operacios rendszer"
+$lines += "  Nev          : $($result.os_caption)"
+$lines += "  Verzio       : $($result.os_version)  (build $($result.os_build))"
+$lines += "  Architektura : $($result.os_arch)"
+$lines += "  Telepitve    : $($result.os_install_date)"
+$lines += "  Utolso indit.: $($result.last_boot)"
+$lines += ""
+$lines += "Memoria: osszesen $($result.ram_total_gb) GB"
+foreach ($m in $result.ram_modules) {
+    $lines += ("  {0,-12} {1,6} GB  {2,6} MHz  {3} {4}" -f $m.slot, $m.size_gb, $m.speed, $m.manufacturer, $m.part_number)
+}
+if ($result.local_user_accounts.Count -gt 0) {
+    $lines += ""
+    $lines += "Helyi felhasznaloi fiokok: " + ($result.local_user_accounts -join ", ")
+}
+$result.raw_text = ($lines -join "`r`n")
 
 $json = $result | ConvertTo-Json -Depth 6
 if ($OutFile -ne "") {

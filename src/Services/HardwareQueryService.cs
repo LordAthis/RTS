@@ -1,4 +1,4 @@
-// Verzio: v2.0.0 - 2026-09-16
+// Verzio: v2.1.0 - 2026-09-16
 // ROUND17 ATALAKITAS - EZ A FAJL AZ "INFORMACIOK FRISSITESE" HIBA GYOKERE.
 //
 // MI VOLT A HIBA (LordAthis 2026-09-15/16-i visszajelzese):
@@ -123,7 +123,10 @@ namespace RTS.Services
                 string outFile = DataFilePath;
                 string arguments = $"-OutFile \"{outFile}\" -Only {only}{toolArgs}";
 
-                int timeout = scope == HwRefreshScope.DxDiag ? 180 : 120;
+                // ROUND18: a dxdiag hatarideje 180 -> 300 mp. LordAthis gepen
+                // a dxdiag tobb mint 2 percig futott, es a script sajat, 120
+                // masodperces korlatja jart le eloszor - a ketto egyutt nott.
+                int timeout = scope == HwRefreshScope.DxDiag ? 300 : 120;
                 var run = await HwScriptRunner.RunAsync(
                     "Get-HardwareReport.ps1", arguments, log, timeout, cancellationToken);
 

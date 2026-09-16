@@ -1,3 +1,17 @@
+// Verzio: v0.5.10 - 2026-09-16
+// ROUND18 (LordAthis 2026-09-16-i kerese): "A MOD panelen megjelennek a nem
+// rendszer kompatibilis elemek is, ezek mellett nem kellene a futtatas gomb,
+// max inaktiv (Szurke) allapotban! Kattintasra: nem kompatibilis oprendszer!
+// Ott van az info, hogy mivel kompatibilis, nem kell tulzasba vinni."
+//
+// Megvalositas: a kompatibilitast ugyanazzal a feltetellel dontjuk el, mint
+// a ModuleMenuView.ApplyOSFilter (item.Os / item.OsOverrides), de itt NEM
+// rejtjuk el a sort - csak a "Futtatas" gomb lesz inaktiv (a WPF ilyenkor
+// magatol szurkere valtja). Mivel egy letiltott gomb nem fogad egereseményt,
+// a gombot egy atlatszo Border-be tesszuk, es AZ irja ki egyetlen rovid
+// mondatban, miert nem futtathato - tobb magyarazat szandekosan nincs, a
+// tamogatott rendszerek listaja ugyis ott van a lenyilo leirasban.
+//
 // Verzio: v0.5.9.1 - 2026-09-15
 // HOTFIX (round15): a v0.5.9-es nagy atalakitas (190a634) ujra bevezette
 // a mar egyszer (round23-ban, a ModuleMenuView.xaml.cs-ben) kijavitott
@@ -171,19 +185,46 @@ namespace RTS.Views
             grid.Children.Add(textPanel);
 
             var btnPanel = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+
+            // ROUND18: a jelenleg valasztott operacios rendszerrel valo
+            // kompatibilitas - ugyanaz a feltetel, mint a ModuleMenuView-ban.
+            string selectedOs = "10";
+            try { selectedOs = ((MainWindow)Application.Current.MainWindow).SelectedOS; } catch { }
+            bool osSupported = IsSupportedOn(item, selectedOs);
+
             var btnRunItem = new Button
             {
                 Content = "Futtatás",
                 Style = (Style)Application.Current.Resources["NeonButtonStyle"],
                 Width = 140,
                 Height = 32,
-                Margin = new Thickness(0, 0, 0, 4)
+                Margin = new Thickness(0, 0, 0, 4),
+                IsEnabled = osSupported
             };
             btnRunItem.Click += (s, e) =>
             {
                 var mainWin = (MainWindow)Application.Current.MainWindow;
                 MenuRunner.Execute(repo.Name, item, mainWin.SelectedOS, mainWin.LogToConsole);
             };
+
+            // Egy letiltott gomb nem kap egereseményt, ezert a kattintast a
+            // koré tett, atlatszo Border fogja el - igy tudunk valaszolni a
+            // felhasznalonak, miert nem tortent semmi.
+            var runHost = new Border
+            {
+                Background = System.Windows.Media.Brushes.Transparent,
+                Child = btnRunItem
+            };
+            if (!osSupported)
+            {
+                runHost.MouseLeftButtonUp += (s, e) =>
+                {
+                    var mainWin = (MainWindow)Application.Current.MainWindow;
+                    mainWin.LogToConsole($"[{item.Name}] Nem kompatibilis oprendszer.");
+                    mainWin.SetInfoText($"{item.Name} - nem kompatibilis oprendszer.");
+                    e.Handled = true;
+                };
+            }
             var btnRunFull = new Button
             {
                 Content = "Teljes repo",
@@ -204,7 +245,7 @@ namespace RTS.Views
                 var result = ModuleRunner.Run(repo.Name, repo.EntryPoint);
                 mainWin.LogToConsole(result.Message);
             };
-            btnPanel.Children.Add(btnRunItem);
+            btnPanel.Children.Add(runHost);
             btnPanel.Children.Add(btnRunFull);
             Grid.SetColumn(btnPanel, 1);
             grid.Children.Add(btnPanel);
@@ -250,6 +291,33 @@ namespace RTS.Views
 
             outer.Children.Add(row);
             return outer;
+        }
+
+        // A kompatibilitas eldontese - SZANDEKOSAN ugyanaz a feltetel, mint
+        // a ModuleMenuView.ApplyOSFilter-ben, hogy a ket nezet sose mondjon
+        // mast ugyanarrol a modulrol.
+        private static bool IsSupportedOn(RtsMenuItem item, string os)
+        {
+            try
+            {
+                if (item.Os != null && item.Os.Contains(os)) return true;
+                if (item.OsOverrides != null && item.OsOverrides.ContainsKey(os)) return true;
+                return false;
+            }
+            catch
+            {
+                // Ha barmi okbol nem tudjuk eldonteni, INKABB engedjuk -
+                // jobb egy futtathato gomb, mint egy indokolatlanul letiltott.
+                return true;
+            }
+        }
+
+        // A MainWindow hivja, amikor a felhasznalo masik operacios rendszert
+        // valaszt a felso XP/7/10/11 gombokkal - ilyenkor ujraepitjuk a
+        // listat, hogy a gombok allapota is kovesse a valasztast.
+        public void ApplyOSFilter(string os)
+        {
+            LoadModules();
         }
 
         private UIElement BuildModuleRow(ModuleInfo mod)

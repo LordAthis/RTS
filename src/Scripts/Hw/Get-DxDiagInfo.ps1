@@ -1,4 +1,4 @@
-# Verzio: v1.0.0 - 2026-09-16
+# Verzio: v1.1.0 - 2026-09-16
 # RTS - hardver-lekerdezes, RESZ-SCRIPT: DXDIAG teljes rendszer-riport.
 #
 # ONALLOAN IS FUTTATHATO. A Windows sajat dxdiag eszkozet hivja
@@ -12,11 +12,17 @@
 # mar masodpercek alatt megadja. A DXDIAG igy KULON, kezi keresre fut:
 # az Eszkozok panelen a DXDIAG sor melletti "Uj gyorsjelentes" gombbal,
 # vagy a Get-HardwareReport.ps1 -Only dxdiag hivassal.
+#
+# ROUND18: az alapertelmezett varakozas 120 -> 240 masodpercre nott.
+# LordAthis 2026-09-16-i gepen a dxdiag tobb mint 2 percig futott, ezert a
+# korabbi 120 masodperces korlat lejart, mielott a riport elkeszult volna
+# ("A DXDIAG riport-fajl nem jott letre a varakozasi ido alatt (120 mp)").
+# A hivo C# oldalon is egyutt nott a hatarido (lasd HardwareQueryService).
 
 [CmdletBinding()]
 param(
     [string]$OutFile = "",
-    [int]$TimeoutSeconds = 120
+    [int]$TimeoutSeconds = 240
 )
 
 $ErrorActionPreference = "SilentlyContinue"

@@ -219,6 +219,11 @@ namespace RTS
                 iws.ApplyOSFilter(SelectedOS);
             else if (MainContentArea.Content is Views.ModuleMenuView menuView)
                 menuView.ApplyOSFilter(SelectedOS);
+            // ROUND18: a MOD-lista is kovesse az OS-valtast - ott a nem
+            // kompatibilis modulok "Futtatas" gombja inaktiv (szurke), es a
+            // valasztott rendszer valtozasakor ujra kell ertekelni.
+            else if (MainContentArea.Content is Views.ModulesView modulesView)
+                modulesView.ApplyOSFilter(SelectedOS);
         }
 
         // Mas nezetek (pl. ModulesView) innen tudjak kicserelni a fo tartalmat,
