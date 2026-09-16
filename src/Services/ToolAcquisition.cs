@@ -1,31 +1,38 @@
-// Verzio: v0.6.0 - 2026-09-14
-// UJ SZOLGALTATAS a "2.1 Eszkozok" kor elokeszitesehez. Feladata: a
-// hardver-lekerdezeshez hasznalt kulso, PORTABLE eszkozoket (CPU-Z,
-// GPU-Z, H.D. Sentinel FREE, Resource Hacker) biztositja a sajat
-// Apps\Tools\<Eszkoz>\ mappaban - letoltve, ha meg nincs ott.
+// Verzio: v2.0.0 - 2026-09-16
+// ROUND17 ATALAKITAS - a kulso segedeszkozok BESZERZESE (telepites /
+// frissites). Ez a fajl MOSTANTOL KIZAROLAG a beszerzesert felel - a
+// hardver-lekerdezes teljesen kulon utat jar (HardwareQueryService +
+// Scripts\Hw\*.ps1). A ketto osszekeverese volt a round16 fo hibaja.
 //
-// FONTOS, TISZTAZANDO DONTES (lasd a kisero jegyzet-dokumentumot):
-// ez a szolgaltatas KULONALLO a SetUpER telepito-csomagjatol
-// (AppsList.json + UpDateR.ps1 + Install-*.ps1) - az a csovezetek jelenleg
-// KIZAROLAG .exe-kent letoltheto, silent-install kapcsolot tamogato
-// telepitoket kezel (lasd UpDateR.ps1: a celfajl mindig "<id>.exe").
-// A CPU-Z es a Resource Hacker viszont ZIP-kent terjed, a GPU-Z pedig egy
-// onallo, "telepites" nelkuli portable EXE - egyik sem illik bele
-// valtoztatas nelkul abba a csovezetekbe. Ezert ezek a lekerdezeshez
-// sajat, EGYSZERUBB logikat kapnak itt, FUGGETLENUL attol, hogy a
-// felhasznalo vegul hova teszi a "telepites inditasa" gombot a feluleten
-// (csavarkulcs-panel vs. SetUpER "teljesen automatizalt telepitok" -
-// ezt a felhasznalo meg nem dontotte el, lasd a jegyzet-dokumentumot).
+// HAROM DOLOG VALTOZOTT MEG, MINDHARMO ELO HIBA MIATT:
 //
-// A H.D. Sentinel PRO teljes telepitoje MAR letezik a SetUpER
-// AppsList.json-jaban (id: "HDS") - AZT EZ A KOD NEM ERINTI, mert az egy
-// masik celt szolgal (teljes, fizetos HDS telepites), mig itt a FREE,
-// portable valtozatra van szukseg csak lekerdezeshez.
+// 1. "AZ UJ VERZIO ALLANDOAN MEGNYITJA A TECHPOWER OLDALAT" (LordAthis,
+//    2026-09-16). A round16-ban a sikertelen GPU-Z beszerzes automatikusan
+//    megnyitotta a letoltesi oldalt a bongeszoben - es mivel a beszerzes
+//    MINDEN indulaskor ES minden frissiteskor ujra lefutott, a bongeszo
+//    ujra meg ujra felugrott. MOSTANTOL: a kod SEMMIKOR nem nyit meg
+//    magatol bongeszot. A letoltesi oldal linkjet visszaadjuk az
+//    uzenetben, es KIZAROLAG a felhasznalo sajat, kifejezett kattintasara
+//    nyilik meg (lasd ToolsView "Letoltesi oldal" gomb).
+//
+// 2. GPU-Z: a "us1-dl.techpowerup.com/files/GPU-Z.{verzio}.exe" minta
+//    404-et adott. Elo ellenorzessel (2026-09-16) kiderult, hogy a
+//    techpowerup Cloudflare mogott, KETLEPCSOS POST-tal (eloszor egy
+//    verzio-azonosito, majd egy szerver-azonosito) szolgalja ki a
+//    letoltest, es a verzio-azonosito kiadasonkent valtozik - vagyis FIX,
+//    verzioval parameterezheto URL NEM LETEZIK. Ezert a beszerzes a
+//    Windows sajat csomagkezelojere (winget) valt, ahogy azt LordAthis
+//    is javasolta (GPUZ-Silent.md).
+//
+// 3. H.D. SENTINEL: a korabbi "hdsentinel_setup.zip" NEM portable
+//    valtozat, hanem a TELEPITO. A kod kicsomagolta, majd a kicsomagolt
+//    TELEPITOT inditotta el egy riport-kapcsoloval - ettol jott fel a
+//    telepito-varazslo egy MAR TELEPITETT programhoz. Mostantol a HDS-t a
+//    SetUpER sajat, mar meglevo telepito-csovezeteke kezeli (AppsList.json,
+//    id: "HDS"), es a jelenletet a ToolDetection ismeri fel a registrybol.
 using System;
+using System.Text.Json;
 using System.IO;
-using System.IO.Compression;
-using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -36,7 +43,12 @@ namespace RTS.Services
         CpuZ,
         GpuZ,
         HdSentinelFree,
-        ResourceHacker
+        ResourceHacker,
+
+        // UJ, round17 (LordAthis 2026-09-16-i kerese: "Plusz ket program
+        // beilleszteni a Csavarkulcs panelre").
+        LibreHardwareMonitor,
+        HwMonitor
     }
 
     public class ToolAcquisitionResult
@@ -44,113 +56,170 @@ namespace RTS.Services
         public bool Ok { get; set; }
         public string Message { get; set; } = "";
         public string? ExecutablePath { get; set; }
+
+        // Ha az automatikus beszerzes nem lehetseges, ide kerul a hivatalos
+        // letoltesi oldal cime - a felulet ebbol tud egy KATTINTHATO gombot
+        // ajanlani. A kod magatol SOSEM nyitja meg.
+        public string? ManualDownloadUrl { get; set; }
+    }
+
+    // Egy eszkoz frissitesi allapota (a "Frissites" gombhoz).
+    public class ToolUpdateStatus
+    {
+        public bool Installed { get; set; }
+        public bool UpdateAvailable { get; set; }
+        public string InstalledVersion { get; set; } = "";
+        public string AvailableVersion { get; set; } = "";
+        public string Message { get; set; } = "";
     }
 
     public static class ToolAcquisition
     {
-        // A feladatok.md 2.1 pontjaban mar kutatott, stabil linkek.
-        private const string ResourceHackerUrl = "http://www.angusj.com/resourcehacker/resource_hacker.zip";
-        private const string HdSentinelFreeUrl = "https://www.hdsentinel.com/hdsentinel_setup.zip";
-
-        // A CPU-Z es GPU-Z verziószáma gyakran valtozik, ezert ezeknel NEM
-        // egy fix URL-t hasznalunk, hanem induláskor kiolvassuk a jelenleg
-        // aktualis verziót a gyarto oldalarol (lasd feladatok.md: "a
-        // verziószámot előbb ki kell olvasni a cpuid.com/... oldalról").
-        //
-        // FIGYELEM - EZ A KE RESZ MEG NEM ELLENORIZHETO ELESBEN: ebben a
-        // munkamenetben (felugyelet nelkuli, hattérben futó Cowork-session)
-        // nem sikerult elerni sem a cpuid.com, sem a techpowerup.com oldalt
-        // (a webes eleres jovahagyast igenyelt volna, amit senki nem tudott
-        // megadni). A lenti regex-minta a legjobb, altalanos becslesem a
-        // szokasos oldal-felepitesre - EZT EGY VALODI, ELO TESZTTEL
-        // (Windows gepen, tenyleges internet-eleressel) KOTELEZO
-        // leellenorizni, mielott elesben hasznaljuk! Ha nem talal talalatot,
-        // a kod NEM talalgat, hanem egyertelmu hibauzenetet ad es
-        // megnyitja a letoltesi oldalt a felhasznalo bongeszojeben, hogy
-        // kezzel tudja folytatni - SOHA nem all le csendben/hibasan.
-        private const string CpuZPageUrl = "https://www.cpuid.com/softwares/cpu-z.html";
-        private const string GpuZPageUrl = "https://www.techpowerup.com/download/techpowerup-gpu-z/";
-        private static readonly Regex CpuZVersionRegex = new(@"cpu-z[_\-]?v?(\d+\.\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
-        private static readonly Regex GpuZVersionRegex = new(@"GPU-Z\.?\s*v?(\d+\.\d+\.\d+)", RegexOptions.IgnoreCase);
-
+        // A sajat, hordozhato peldanyok helye. A ToolDetection ELOSZOR ide
+        // nez, de MAR NEM CSAK ide (lasd ott a registry/Program Files
+        // agakat is).
         public static string ToolsDir => Path.Combine(ModuleRunner.AppsDir, "Tools");
 
         public static string ToolDir(ToolId tool) => Path.Combine(ToolsDir, tool.ToString());
 
-        // Megmondja, hogy a portable eszkoz mar jelen van-e (nem hivja meg
-        // magat a lekerdezest - lasd HardwareQueryService).
-        public static bool IsPresent(ToolId tool)
+        // Hivatalos letoltesi oldalak - CSAK a felhasznaloi kattintasra
+        // megnyilo "Letoltesi oldal" gombhoz, automatikus megnyitas NINCS.
+        public static string DownloadPageUrl(ToolId tool) => tool switch
         {
-            string dir = ToolDir(tool);
-            if (!Directory.Exists(dir)) return false;
-            return Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories).Length > 0;
-        }
+            ToolId.CpuZ                 => "https://www.cpuid.com/softwares/cpu-z.html",
+            ToolId.GpuZ                 => "https://www.techpowerup.com/download/techpowerup-gpu-z/",
+            ToolId.HdSentinelFree       => "https://www.hdsentinel.com/download.php",
+            ToolId.ResourceHacker       => "http://www.angusj.com/resourcehacker/",
+            ToolId.LibreHardwareMonitor => "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/latest",
+            ToolId.HwMonitor            => "https://www.cpuid.com/softwares/hwmonitor.html",
+            _                           => ""
+        };
 
-        // Ha az eszkoz hianyzik, letolti/kibontja a sajat Apps\Tools\<Eszkoz>\
-        // mappajaba. Nem dob kivetelt kifele - mindig egy vilagos,
-        // magyar uzenetet ad vissza (log-panelbe irhato).
-        // ROUND16 JAVITAS: LordAthis logjai (2026-09-15) egy versenyhelyzetet
-        // (race condition) mutattak ki - ha KET fuggetlen hivo (pl. a
-        // ToolsView panel-megnyitasi auto-beszerzese ES a "Frissites"
-        // gombra kattintva inditott HardwareQueryService.RefreshAsync)
-        // NAGYJABOL EGYSZERRE hivja meg EnsureAsync-et UGYANARRA az
-        // eszkozre, mindketto atmegy az IsPresent() ellenorzesen (meg egyik
-        // sem toltotte le), majd mindketto UGYANABBA a celmappaba probal
-        // kicsomagolni/irni - ez okozta a naploban latott "The process
-        // cannot access the file... because it is being used by another
-        // process" hibat a CPU-Z-nel. A lenti semafor egyszerre csak EGY
-        // beszerzest enged at (barmelyik eszkozrol legyen is szo - ezek
-        // amugy is ritka, gyors muveletek, nem eri meg eszkozonkent kulon
-        // zart bevezetni), es a zar MEGSZERZESE UTAN UJRA ellenorzi az
-        // IsPresent()-et, hatha a masik, korabban varakozo hivo idokozben
-        // mar vegzett.
+        // Egyszerre csak EGY beszerzes fusson (round16-os versenyhelyzet-
+        // javitas - tovabbra is ervenyes es szukseges).
         private static readonly SemaphoreSlim AcquireLock = new(1, 1);
 
+        // ─────────────────────────── Jelenlet-ellenorzes ───────────────────────────
+        // FONTOS: ez MOSTANTOL a TELJES gepet nezi (sajat mappa + registry +
+        // Program Files), nem csak az Apps\Tools\ mappat. Pontosan ez volt a
+        // "mar telepitve van, megis ujra akarja telepiteni" hiba oka.
+        public static bool IsPresent(ToolId tool) => ToolDetection.Detect(tool).Installed;
+
+        public static ToolPresence Presence(ToolId tool) => ToolDetection.Detect(tool);
+
+        // ─────────────────────────── Telepites ───────────────────────────
+        // KIZAROLAG akkor fut le, ha a hivo KIFEJEZETTEN keri (elso
+        // indulaskori beallitas, vagy a felhasznalo "Telepites" gombja).
+        // A hardver-lekerdezes SOSEM hivja meg.
         public static async Task<ToolAcquisitionResult> EnsureAsync(ToolId tool, Action<string>? log = null)
         {
             void Log(string m) => log?.Invoke($"[Eszkozok] {m}");
+            var desc = ToolDetection.Describe(tool);
 
-            if (IsPresent(tool))
+            var already = ToolDetection.Detect(tool);
+            if (already.Installed)
             {
-                return new ToolAcquisitionResult { Ok = true, Message = $"{tool} mar rendelkezesre all." };
+                return new ToolAcquisitionResult
+                {
+                    Ok = true,
+                    Message = $"{desc.DisplayName} mar rendelkezesre all ({already.Source}).",
+                    ExecutablePath = already.ExecutablePath
+                };
             }
 
             await AcquireLock.WaitAsync();
             try
             {
-                // Ujra-ellenorzes a zar megszerzese UTAN - lehet, hogy egy
-                // masik, korabban varakozo hivas idokozben mar bepotolta.
-                if (IsPresent(tool))
+                // Ujra-ellenorzes a zar megszerzese UTAN (round16-os
+                // versenyhelyzet-javitas).
+                var recheck = ToolDetection.Detect(tool);
+                if (recheck.Installed)
                 {
-                    return new ToolAcquisitionResult { Ok = true, Message = $"{tool} mar rendelkezesre all." };
+                    return new ToolAcquisitionResult
+                    {
+                        Ok = true,
+                        Message = $"{desc.DisplayName} mar rendelkezesre all ({recheck.Source}).",
+                        ExecutablePath = recheck.ExecutablePath
+                    };
                 }
 
-                string dir = ToolDir(tool);
-                Directory.CreateDirectory(ToolsDir);
-                ForceDeleteDirectory(dir); // csak arra az esetre, ha korabban hibasan/felig maradt le
-
-                switch (tool)
+                // A H.D. Sentinel a SetUpER sajat telepito-csovezeteken megy
+                // (ott mar letezik "HDS" azonositoval) - NEM toltunk le
+                // semmilyen zip-et hozza.
+                if (tool == ToolId.HdSentinelFree)
                 {
-                    case ToolId.ResourceHacker:
-                        return await DownloadAndExtractZipAsync(dir, ResourceHackerUrl, tool, Log);
-
-                    case ToolId.HdSentinelFree:
-                        return await DownloadAndExtractZipAsync(dir, HdSentinelFreeUrl, tool, Log);
-
-                    case ToolId.CpuZ:
-                        return await AcquireCpuZAsync(dir, Log);
-
-                    case ToolId.GpuZ:
-                        return await AcquireGpuZAsync(dir, Log);
-
-                    default:
-                        return new ToolAcquisitionResult { Ok = false, Message = "Ismeretlen eszkoz." };
+                    return new ToolAcquisitionResult
+                    {
+                        Ok = false,
+                        Message = "A Hard Disk Sentinel telepiteset a SetUpER modul vegzi - nyisd meg az STP nezetet, " +
+                                  "es onnan inditsd a telepitest (a korabbi, kozvetlen zip-letoltes hibas volt: az a " +
+                                  "csomag nem hordozhato valtozat, hanem a telepito).",
+                        ManualDownloadUrl = DownloadPageUrl(tool)
+                    };
                 }
+
+                if (desc.WingetIds.Length == 0)
+                {
+                    return new ToolAcquisitionResult
+                    {
+                        Ok = false,
+                        Message = $"{desc.DisplayName}: nincs beallitva automatikus telepitesi mod.",
+                        ManualDownloadUrl = DownloadPageUrl(tool)
+                    };
+                }
+
+                Log($"{desc.DisplayName} telepitese a Windows csomagkezelojevel (winget: {desc.WingetId})...");
+                var wr = await RunEnsureToolAsync(desc.WingetIds, "install", log);
+
+                if (wr == null)
+                {
+                    return new ToolAcquisitionResult
+                    {
+                        Ok = false,
+                        Message = $"{desc.DisplayName}: a telepito script futtatasa sikertelen.",
+                        ManualDownloadUrl = DownloadPageUrl(tool)
+                    };
+                }
+
+                if (!wr.WingetAvailable)
+                {
+                    return new ToolAcquisitionResult
+                    {
+                        Ok = false,
+                        Message = $"{desc.DisplayName}: {wr.Message}",
+                        ManualDownloadUrl = DownloadPageUrl(tool)
+                    };
+                }
+
+                var after = ToolDetection.Detect(tool);
+                if (wr.Installed || after.Installed)
+                {
+                    Log($"{desc.DisplayName}: {wr.Message}");
+                    return new ToolAcquisitionResult
+                    {
+                        Ok = true,
+                        Message = $"{desc.DisplayName} kesz. {wr.Message}",
+                        ExecutablePath = after.ExecutablePath
+                    };
+                }
+
+                Log($"{desc.DisplayName}: {wr.Message}");
+                return new ToolAcquisitionResult
+                {
+                    Ok = false,
+                    Message = $"{desc.DisplayName}: {wr.Message}",
+                    ManualDownloadUrl = DownloadPageUrl(tool)
+                };
             }
             catch (Exception ex)
             {
-                Log($"Hiba a(z) {tool} beszerzesekor: {ex.Message}");
-                return new ToolAcquisitionResult { Ok = false, Message = $"Hiba a(z) {tool} beszerzesekor: {ex.Message}" };
+                Log($"Hiba a(z) {desc.DisplayName} beszerzesekor: {ex.Message}");
+                return new ToolAcquisitionResult
+                {
+                    Ok = false,
+                    Message = $"Hiba a(z) {desc.DisplayName} beszerzesekor: {ex.Message}",
+                    ManualDownloadUrl = DownloadPageUrl(tool)
+                };
             }
             finally
             {
@@ -158,127 +227,127 @@ namespace RTS.Services
             }
         }
 
-        private static async Task<ToolAcquisitionResult> DownloadAndExtractZipAsync(string targetDir, string zipUrl, ToolId tool, Action<string> log)
+        // ─────────────────────── Frissites-ellenorzes / frissites ───────────────────────
+        // A felhasznalo kerese (2026-09-16): "ha telepitve van, akkor ugyan
+        // tovabb lep, de egy masik ellenorzo rutint is indit, hogy van-e
+        // frissebb verzio! Ebben az esetben a megnyitas mellett a frissites
+        // jelenjen meg pluszban!"
+        //
+        // FONTOS: ez a metodus SEMMIT nem telepit - csak megnezi az
+        // allapotot. A tenyleges frissitest az UpdateAsync vegzi.
+        public static async Task<ToolUpdateStatus> CheckUpdateAsync(ToolId tool, Action<string>? log = null)
         {
-            string tmpZip = Path.Combine(Path.GetTempPath(), $"rts_tool_{tool}.zip");
+            var desc = ToolDetection.Describe(tool);
+            var status = new ToolUpdateStatus();
+
+            var presence = ToolDetection.Detect(tool);
+            status.Installed = presence.Installed;
+            status.InstalledVersion = presence.Version;
+
+            if (!presence.Installed || desc.WingetIds.Length == 0)
+            {
+                status.Message = presence.Installed
+                    ? "Frissites-ellenorzes ehhez az eszkozhoz nem erheto el."
+                    : "Nincs telepitve.";
+                return status;
+            }
+
+            var wr = await RunEnsureToolAsync(desc.WingetIds, "check", log);
+            if (wr == null || !wr.WingetAvailable)
+            {
+                status.Message = wr?.Message ?? "A frissites-ellenorzes nem futott le.";
+                return status;
+            }
+
+            status.UpdateAvailable = wr.UpdateAvailable;
+            status.AvailableVersion = wr.AvailableVersion;
+            if (!string.IsNullOrWhiteSpace(wr.InstalledVersion)) status.InstalledVersion = wr.InstalledVersion;
+            status.Message = wr.Message;
+            return status;
+        }
+
+        public static async Task<ToolAcquisitionResult> UpdateAsync(ToolId tool, Action<string>? log = null)
+        {
+            void Log(string m) => log?.Invoke($"[Eszkozok] {m}");
+            var desc = ToolDetection.Describe(tool);
+
+            if (desc.WingetIds.Length == 0)
+            {
+                return new ToolAcquisitionResult
+                {
+                    Ok = false,
+                    Message = $"{desc.DisplayName}: automatikus frissites ehhez az eszkozhoz nem erheto el.",
+                    ManualDownloadUrl = DownloadPageUrl(tool)
+                };
+            }
+
+            await AcquireLock.WaitAsync();
             try
             {
-                log($"{tool} letoltese: {zipUrl}");
-                using var http = new HttpClient();
-                http.Timeout = TimeSpan.FromMinutes(3);
-                byte[] bytes = await http.GetByteArrayAsync(zipUrl);
-                await File.WriteAllBytesAsync(tmpZip, bytes);
+                Log($"{desc.DisplayName} frissitese (winget: {desc.WingetId})...");
+                var wr = await RunEnsureToolAsync(desc.WingetIds, "upgrade", log);
 
-                Directory.CreateDirectory(targetDir);
-                ZipFile.ExtractToDirectory(tmpZip, targetDir, overwriteFiles: true);
+                if (wr == null || !wr.WingetAvailable)
+                {
+                    return new ToolAcquisitionResult
+                    {
+                        Ok = false,
+                        Message = $"{desc.DisplayName}: {(wr?.Message ?? "a frissites nem futott le.")}",
+                        ManualDownloadUrl = DownloadPageUrl(tool)
+                    };
+                }
 
-                log($"{tool} sikeresen letoltve/kibontva: {targetDir}");
-                return new ToolAcquisitionResult { Ok = true, Message = $"{tool} kesz.", ExecutablePath = FindFirstExe(targetDir) };
+                Log($"{desc.DisplayName}: {wr.Message}");
+                var after = ToolDetection.Detect(tool);
+                return new ToolAcquisitionResult
+                {
+                    Ok = wr.Changed || !wr.UpdateAvailable,
+                    Message = $"{desc.DisplayName}: {wr.Message}",
+                    ExecutablePath = after.ExecutablePath
+                };
             }
             finally
             {
-                try { File.Delete(tmpZip); } catch { /* nem kritikus */ }
+                AcquireLock.Release();
             }
         }
 
-        private static async Task<ToolAcquisitionResult> AcquireCpuZAsync(string targetDir, Action<string> log)
+        // ─────────────────────────── Megnyitas ───────────────────────────
+        // A mar telepitett eszkoz elinditasa (a "Megnyitas" gomb).
+        public static bool LaunchExisting(ToolId tool, Action<string>? log = null)
         {
-            string? version = await TryFetchVersionAsync(CpuZPageUrl, CpuZVersionRegex, log, "CPU-Z");
-            if (version == null)
+            var desc = ToolDetection.Describe(tool);
+            var presence = ToolDetection.Detect(tool);
+            if (!presence.Installed || presence.ExecutablePath == null)
             {
-                OpenInBrowser(CpuZPageUrl);
-                return new ToolAcquisitionResult
-                {
-                    Ok = false,
-                    Message = "CPU-Z verziószámát nem sikerult automatikusan megallapitani - a letoltesi oldal megnyilt, kerlek toltsd le kezzel a Tools\\CpuZ mappaba."
-                };
+                log?.Invoke($"[Eszkozok] {desc.DisplayName} nem talalhato a gepen - eloszor telepitsd.");
+                return false;
             }
-
-            string zipUrl = $"http://download.cpuid.com/cpu-z/cpu-z_{version}-en.zip";
-            return await DownloadAndExtractZipAsync(targetDir, zipUrl, ToolId.CpuZ, log);
-        }
-
-        private static async Task<ToolAcquisitionResult> AcquireGpuZAsync(string targetDir, Action<string> log)
-        {
-            string? version = await TryFetchVersionAsync(GpuZPageUrl, GpuZVersionRegex, log, "GPU-Z");
-            if (version == null)
-            {
-                OpenInBrowser(GpuZPageUrl);
-                return new ToolAcquisitionResult
-                {
-                    Ok = false,
-                    Message = "GPU-Z verziószámát nem sikerult automatikusan megallapitani - a letoltesi oldal megnyilt, kerlek toltsd le kezzel a Tools\\GpuZ mappaba."
-                };
-            }
-
-            // ROUND16 - MEGERoSITETT HIBA: LordAthis elo Windows-gepen
-            // futtatva 404-et kapott erre a cimre ("Response status code
-            // does not indicate success: 404"). Sajat WebFetch-ellenorzesem
-            // is ellentmondasos/elavult adatot adott vissza a techpowerup
-            // oldalrol (2020-as 2.36.0 verziot mutatott, holott az elo
-            // regex-lekerdezes helyesen 2.70.0-t talal) - vagyis a letoltesi
-            // cim PONTOS mintajat innen, elo Windows-teszt nelkul NEM tudom
-            // megbizhatoan ujra-kitalalni. Ahelyett, hogy egy MASIK,
-            // ugyanugy ellenorizetlen mintat probalnek beegetni, a hibat
-            // MOST UGYANUGY kezeljuk, mint a verziószam-fel-nem-ismerest:
-            // egyertelmu uzenet + a letoltesi oldal megnyitasa kezi
-            // letoltesre - SOHA nem all le csendben/hibasan, es nem
-            // talalgat tovabb egy mar bizonyitottan hibas mintat.
-            string exeUrl = $"https://us1-dl.techpowerup.com/files/GPU-Z.{version}.exe";
-            string exePath = Path.Combine(targetDir, $"GPU-Z.{version}.exe");
 
             try
             {
-                Directory.CreateDirectory(targetDir);
-                using var http = new HttpClient();
-                http.Timeout = TimeSpan.FromMinutes(3);
-                log($"GPU-Z letoltese: {exeUrl}");
-                byte[] bytes = await http.GetByteArrayAsync(exeUrl);
-                await File.WriteAllBytesAsync(exePath, bytes);
-
-                log("GPU-Z sikeresen letoltve.");
-                return new ToolAcquisitionResult { Ok = true, Message = "GPU-Z kesz.", ExecutablePath = exePath };
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = presence.ExecutablePath,
+                    WorkingDirectory = Path.GetDirectoryName(presence.ExecutablePath) ?? "",
+                    UseShellExecute = true
+                });
+                log?.Invoke($"[Eszkozok] {desc.DisplayName} elinditva.");
+                return true;
             }
             catch (Exception ex)
             {
-                log($"GPU-Z letoltese sikertelen ({exeUrl}): {ex.Message} - a kitalalt fajlnev-minta idokozben megvaltozhatott.");
-                OpenInBrowser(GpuZPageUrl);
-                return new ToolAcquisitionResult
-                {
-                    Ok = false,
-                    Message = "GPU-Z automatikus letoltese sikertelen (a letoltesi cim mintaja idokozben megvaltozhatott) - a letoltesi oldal megnyilt, kerlek toltsd le kezzel a Tools\\GpuZ mappaba."
-                };
+                log?.Invoke($"[Eszkozok] {desc.DisplayName} inditasa sikertelen: {ex.Message}");
+                return false;
             }
         }
 
-        private static async Task<string?> TryFetchVersionAsync(string pageUrl, Regex pattern, Action<string> log, string toolName)
+        // A hivatalos letoltesi oldal megnyitasa - KIZAROLAG a felhasznalo
+        // sajat kattintasara hivhato (lasd a fajl fejleceben az 1. pontot).
+        public static void OpenDownloadPage(ToolId tool, Action<string>? log = null)
         {
-            try
-            {
-                using var http = new HttpClient();
-                http.Timeout = TimeSpan.FromSeconds(20);
-                http.DefaultRequestHeaders.UserAgent.ParseAdd(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-                string html = await http.GetStringAsync(pageUrl);
-                var match = pattern.Match(html);
-                if (match.Success)
-                {
-                    string version = match.Groups[1].Value;
-                    log($"{toolName} aktualis verzioja megtalalva: {version}");
-                    return version;
-                }
-                log($"{toolName} verzioszam-mintaja nem talalhato a {pageUrl} oldalon - lehet, hogy megvaltozott az oldal felepitese.");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                log($"{toolName} verziószám-lekérdezés sikertelen ({pageUrl}): {ex.Message}");
-                return null;
-            }
-        }
-
-        private static void OpenInBrowser(string url)
-        {
+            string url = DownloadPageUrl(tool);
+            if (string.IsNullOrWhiteSpace(url)) return;
             try
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -286,16 +355,61 @@ namespace RTS.Services
                     FileName = url,
                     UseShellExecute = true
                 });
+                log?.Invoke($"[Eszkozok] Letoltesi oldal megnyitva: {url}");
             }
-            catch { /* nem kritikus, csak kenyelmi funkcio */ }
+            catch (Exception ex)
+            {
+                log?.Invoke($"[Eszkozok] A letoltesi oldal megnyitasa sikertelen: {ex.Message}");
+            }
         }
 
-        private static string? FindFirstExe(string dir)
+        // ─────────────────────── winget-script futtatasa ───────────────────────
+        private class EnsureToolJson
         {
+            public bool WingetAvailable { get; set; }
+            public bool Installed { get; set; }
+            public string InstalledVersion { get; set; } = "";
+            public string AvailableVersion { get; set; } = "";
+            public bool UpdateAvailable { get; set; }
+            public bool Changed { get; set; }
+            public string Message { get; set; } = "";
+        }
+
+        // Tobb jelolt winget-azonositot adunk at: a script sorban
+        // ellenorzi oket (winget show), es az ELSO LETEZOT hasznalja. Igy
+        // egy katalogus-atnevezes nem teszi hasznalhatatlanna a funkciot,
+        // es nem is talalgatunk vaktaban.
+        private static async Task<EnsureToolJson?> RunEnsureToolAsync(string[] packageIds, string action, Action<string>? log)
+        {
+            string joined = string.Join(",", packageIds);
+            var run = await HwScriptRunner.RunAsync(
+                "Ensure-Tool.ps1",
+                $"-PackageIds \"{joined}\" -Action {action}",
+                log,
+                action == "check" ? 120 : 600);
+
+            string output = run.StdOut?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(output)) return null;
+
+            // A script JSON-t ir a standard kimenetre - az elso '{'-tol
+            // olvassuk, hogy egy esetleges elozetes sor se zavarjon be.
+            int start = output.IndexOf('{');
+            if (start < 0) return null;
+
             try
             {
-                var exe = Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories);
-                return exe.Length > 0 ? exe[0] : null;
+                using var doc = JsonDocument.Parse(output.Substring(start));
+                var root = doc.RootElement;
+                return new EnsureToolJson
+                {
+                    WingetAvailable  = GetBool(root, "winget_available"),
+                    Installed        = GetBool(root, "installed"),
+                    InstalledVersion = GetString(root, "installed_version"),
+                    AvailableVersion = GetString(root, "available_version"),
+                    UpdateAvailable  = GetBool(root, "update_available"),
+                    Changed          = GetBool(root, "changed"),
+                    Message          = GetString(root, "message")
+                };
             }
             catch
             {
@@ -303,28 +417,17 @@ namespace RTS.Services
             }
         }
 
-        // Sajat, kicsi masolata a RtsInstaller.cs-ben mar bevalt
-        // ForceDeleteDirectory mintanak (csak-olvashato jelzes levetele
-        // minden fajlrol torles elott - lasd ott a reszletes indoklast a
-        // git pack-fajlos hibarol). Szandekosan KULON fuggveny, hogy ez a
-        // fajl onmagaban, a RtsInstaller.cs erintese nelkul is athelyezheto/
-        // reviewolhato legyen.
-        private static bool ForceDeleteDirectory(string path)
+        private static bool GetBool(JsonElement root, string name)
         {
-            try
-            {
-                if (!Directory.Exists(path)) return true;
-                foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
-                {
-                    try { File.SetAttributes(file, FileAttributes.Normal); } catch { }
-                }
-                Directory.Delete(path, true);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            if (!root.TryGetProperty(name, out var el)) return false;
+            return el.ValueKind == JsonValueKind.True
+                   || (el.ValueKind == JsonValueKind.String && bool.TryParse(el.GetString(), out bool b) && b);
+        }
+
+        private static string GetString(JsonElement root, string name)
+        {
+            if (!root.TryGetProperty(name, out var el)) return "";
+            return el.ValueKind == JsonValueKind.String ? (el.GetString() ?? "") : el.ToString();
         }
     }
 }

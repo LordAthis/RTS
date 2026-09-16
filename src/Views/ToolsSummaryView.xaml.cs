@@ -1,7 +1,9 @@
-// Verzio: v0.6.0 - 2026-09-14
-// DRAFT - lasd ToolsSummaryView.xaml. A B2 dobozba kerul (MainWindow
-// konstruktoraban, lasd a kisero jegyzet-dokumentumban a pontos
-// beillesztesi helyet).
+// Verzio: v2.0.0 - 2026-09-16
+// ROUND17: a B2 doboz (fo ablak jobb oldala) gyors osszefoglaloja.
+// Az uj, v2-es hardware-info.json sema szerint olvas (lasd
+// Models/HardwareInfo.cs), es CSAK a mar elmentett eredmenyt jeleniti meg -
+// lekerdezest NEM indit. A frissitest az Eszkozok panel "Informaciok
+// frissitese" gombja vegzi, ami utana meghivja az itteni Load()-ot.
 using System.Windows.Controls;
 using RTS.Services;
 
@@ -20,17 +22,42 @@ namespace RTS.Views
             var info = HardwareQueryService.LoadCached();
             if (info == null)
             {
-                TxtSummary.Text = "ESZKOZOK\n(meg nincs lekerdezes -\nnyisd meg a 🔧 gombbal)";
+                TxtSummary.Text = "ESZKOZOK\n(meg nincs lekerdezes -\nnyisd meg a \U0001F527 gombbal)";
                 return;
             }
 
-            string cpu = string.IsNullOrWhiteSpace(info.Cpu.Summary) ? "?" : Shorten(info.Cpu.Summary, 22);
-            string disk = info.Disk.HealthPercent.HasValue ? $"{info.Disk.HealthPercent}%" : "?";
-            string when = info.QueriedAtUtc.HasValue ? info.QueriedAtUtc.Value.ToLocalTime().ToString("MM-dd HH:mm") : "?";
+            string cpu = info.Cpu != null && !string.IsNullOrWhiteSpace(info.Cpu.Summary)
+                ? Shorten(info.Cpu.Summary, 22)
+                : "?";
 
-            TxtSummary.Text = $"CPU: {cpu}\nLemez: {disk}\nLekerdezve: {when}";
+            string disk = info.Disk?.HealthPercent != null
+                ? $"{info.Disk.HealthPercent}%"
+                : "?";
+
+            string when = info.QueriedAtUtc.HasValue
+                ? info.QueriedAtUtc.Value.ToLocalTime().ToString("MM-dd HH:mm")
+                : "?";
+
+            string text = $"CPU: {cpu}\nLemez: {disk}";
+
+            // Ha van szenzor-adat (LibreHardwareMonitor), a legmagasabb
+            // homersekletet is kiirjuk - ez a leghasznosabb egyetlen szam
+            // egy szerviz-helyzetben.
+            if (info.Sensors?.Sensors is { Count: > 0 })
+            {
+                double? maxTemp = null;
+                foreach (var s in info.Sensors.Sensors)
+                {
+                    if (s.Type != "Temperature") continue;
+                    if (maxTemp == null || s.Value > maxTemp) maxTemp = s.Value;
+                }
+                if (maxTemp.HasValue) text += $"\nMax. hom.: {maxTemp.Value:0.#} C";
+            }
+
+            text += $"\nLekerdezve: {when}";
+            TxtSummary.Text = text;
         }
 
-        private static string Shorten(string s, int max) => s.Length <= max ? s : s.Substring(0, max - 1) + "…";
+        private static string Shorten(string s, int max) => s.Length <= max ? s : s.Substring(0, max - 1) + "\u2026";
     }
 }

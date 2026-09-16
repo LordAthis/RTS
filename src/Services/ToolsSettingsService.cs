@@ -1,46 +1,66 @@
-// Verzio: v0.7.0 - 2026-09-15
-// ROUND16 PONTOSITAS (LordAthis 2026-09-15-i visszajelzese alapjan): ez a
-// kapcsolo MOSTANTOL KIZAROLAG a RustDeskre vonatkozik, NEM az osszes
-// segedeszkozre. A CPU-Z / GPU-Z / H.D. Sentinel FREE / Resource Hacker
-// mostantol FELTETEL NELKUL, kerdes/kapcsolo nelkul, automatikusan
-// beszerzodik minden inditaskor (lasd ToolsBootstrap) - ezek artalmatlan,
-// portable, csak-olvaso segedprogramok. A RustDesk viszont tavoli
-// hozzaferest ad, ezert MARAD kulon jovahagyashoz kotve: az elso-inditasi
-// Igen/Nem kerdes (lasd MainWindow.xaml.cs) es a csavarkulcs-panelen levo,
-// KIZAROLAG RustDeskre vonatkozo jelolonegyzet+Alkalmaz allitja ezt a
-// mezot ("telepitse ES allitsa be automatikusan a RustDesket").
+// Verzio: v2.0.0 - 2026-09-16
+// ROUND17 BOVITES - a beallito-fajl mostantol a TELJES elso-indulasi
+// allapotot rogziti, ahogy LordAthis 2026-09-16-i leirasa kerte:
 //
-// A beallitas egy egyszeru JSON fajlban lakik a data\ mappaban
-// (ModuleRunner.DataDir), NEM a Registry-ben - ez NEM resze a kesobbi
-// licenc-vedelemnek, ezert nem kell elrejteni/vedeni, mint a jovobeli
-// licenc-szamlalot.
+//   "elso indituskor ellenorzi a beallito-fajlt, le vannak-e toltve a
+//    komponensek! Mivel nincsen, ezert letolti a komponenseket, de elotte
+//    megkerdezi, hogy a Rust-ot is kell-e! (...) elmenti a beallito-fajlba!
+//    (JSON: kell-e Rust is, fel vannak-e teve!) (...) Minden indituskor
+//    ellenorzi a beallito-fajlbol az allapotot!"
 //
-// MEGJEGYZES: a korabbi (v0.6.1) valtozat "tools-settings.json" fajlja
-// egy MAS jelentesű ("auto_install" = a TELJES eszkoz-csoportra
-// vonatkozott) beallitast tartalmazhat mar kikerult gepeken. Csak a JSON
-// mezo atnevezese NEM lenne eleg - a HasBeenAsked() a fajl LETEZESET
-// nezi, tehat a regi fajl megleteivel a kerdes soha tobbet nem jelenne
-// meg, a mogottes ertek pedig csendben false-ra allna (ismeretlen mezo).
-// Ezert MOST MAR KULON, UJ FAJLNEVET hasznalunk ("rustdesk-settings.json")
-// - a regi "tools-settings.json" egyszeruen figyelmen kivul marad, es a
-// meglevo felhasznalok is megkapjak MEG EGYSZER az (uj, RustDesk-specifikus
-// szovegű) elso-inditasi kerdest, ami szandekos, mert a mogottes
-// viselkedes tenylegesen valtozott.
+// A fajl helye valtozatlanul: <InstallRoot>\data\rustdesk-settings.json
+// (a nevet a round16-ban azert kapta, mert akkor MEG csak a RustDesk
+// kapcsolot tartalmazta - most tobbet tud, de a nevet SZANDEKOSAN NEM
+// valtoztatjuk meg ujra: minden atnevezes azzal jar, hogy az elso-indulasi
+// kerdes MEG EGYSZER felugrik a mar mukodo gepeken. A tartalom bovitese
+// visszafele kompatibilis: a regi fajl hianyzo mezoi egyszeruen az
+// alapertelmezett erteket kapjak.)
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace RTS.Services
 {
+    // Egy komponens rogzitett allapota a beallito-fajlban.
+    public class ComponentState
+    {
+        [JsonPropertyName("installed")]
+        public bool Installed { get; set; }
+
+        [JsonPropertyName("version")]
+        public string Version { get; set; } = "";
+
+        // Honnan talaltuk meg (sajat mappa / telepitve: ... ) - ez keszult
+        // a felhasznaloi felulet szamara, hogy lathato legyen, MIERT nem
+        // akarja ujra telepiteni.
+        [JsonPropertyName("source")]
+        public string Source { get; set; } = "";
+
+        [JsonPropertyName("checked_at_utc")]
+        public DateTime? CheckedAtUtc { get; set; }
+    }
+
     public class ToolsSettings
     {
+        // Kell-e a RustDesk (ezt kerdezi meg az elso indulasi ablak).
         [JsonPropertyName("rustdesk_auto_install")]
         public bool RustDeskAutoInstall { get; set; } = false;
 
-        // Ha meg soha nem kerdeztuk meg a felhasznalot (nincs meg fajl),
-        // ezt a mezot nem is irjuk ki - csak akkor kerul a fajlba, amikor
-        // eldolt a valasz (lasd HasAnswer/Save).
+        // Lefutott-e mar a teljes elso-indulasi beszerzes. Ha true, a
+        // kovetkezo indulaskor MAR NEM probalunk semmit beszerezni - csak
+        // beolvassuk az elmentett adatokat es megjelenitjuk.
+        [JsonPropertyName("components_bootstrapped")]
+        public bool ComponentsBootstrapped { get; set; } = false;
+
+        [JsonPropertyName("bootstrapped_at_utc")]
+        public DateTime? BootstrappedAtUtc { get; set; }
+
+        // Komponensenkenti allapot (kulcs: a ToolId neve).
+        [JsonPropertyName("components")]
+        public Dictionary<string, ComponentState> Components { get; set; } = new();
+
         [JsonPropertyName("asked_at_utc")]
         public DateTime AskedAtUtc { get; set; }
     }
@@ -49,8 +69,11 @@ namespace RTS.Services
     {
         private static string SettingsPath => Path.Combine(ModuleRunner.DataDir, "rustdesk-settings.json");
 
+        private static readonly JsonSerializerOptions ReadOptions = new() { PropertyNameCaseInsensitive = true };
+        private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
+
         // Ha ez false, meg SOSEM kerdeztuk meg a felhasznalot - az elso-
-        // inditasi popup ekkor jelenik meg (lasd MainWindow.xaml.cs).
+        // indulasi popup ekkor jelenik meg (lasd MainWindow.xaml.cs).
         public static bool HasBeenAsked => File.Exists(SettingsPath);
 
         public static ToolsSettings Load()
@@ -59,8 +82,8 @@ namespace RTS.Services
             {
                 if (!File.Exists(SettingsPath)) return new ToolsSettings();
                 string json = File.ReadAllText(SettingsPath);
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                return JsonSerializer.Deserialize<ToolsSettings>(json, options) ?? new ToolsSettings();
+                if (string.IsNullOrWhiteSpace(json)) return new ToolsSettings();
+                return JsonSerializer.Deserialize<ToolsSettings>(json, ReadOptions) ?? new ToolsSettings();
             }
             catch
             {
@@ -68,19 +91,51 @@ namespace RTS.Services
             }
         }
 
-        public static void Save(bool rustDeskAutoInstall)
+        public static void Save(ToolsSettings settings)
         {
             try
             {
-                var settings = new ToolsSettings { RustDeskAutoInstall = rustDeskAutoInstall, AskedAtUtc = DateTime.UtcNow };
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, options));
+                File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, WriteOptions));
             }
             catch
             {
                 // Nem kritikus - legrosszabb esetben legkozelebb ujra
-                // megkerdezzuk a felhasznalot inditaskor.
+                // megkerdezzuk a felhasznalot indulaskor.
             }
+        }
+
+        // Visszafele kompatibilis, egyszeru forma (a meglevo hivok miatt):
+        // csak a RustDesk-kapcsolot allitja, a tobbi mezot valtozatlanul
+        // hagyja.
+        public static void Save(bool rustDeskAutoInstall)
+        {
+            var settings = Load();
+            settings.RustDeskAutoInstall = rustDeskAutoInstall;
+            settings.AskedAtUtc = DateTime.UtcNow;
+            Save(settings);
+        }
+
+        // A beszerzes utan a komponensek allapotat is rogzitjuk, hogy a
+        // kovetkezo indulas mar csak OLVASSON, ne probaljon beszerezni.
+        public static void SaveComponentStates(Dictionary<ToolId, ToolPresence> presences, bool bootstrapped)
+        {
+            var settings = Load();
+            foreach (var kv in presences)
+            {
+                settings.Components[kv.Key.ToString()] = new ComponentState
+                {
+                    Installed = kv.Value.Installed,
+                    Version = kv.Value.Version,
+                    Source = kv.Value.Source,
+                    CheckedAtUtc = DateTime.UtcNow
+                };
+            }
+            if (bootstrapped)
+            {
+                settings.ComponentsBootstrapped = true;
+                settings.BootstrappedAtUtc = DateTime.UtcNow;
+            }
+            Save(settings);
         }
     }
 }

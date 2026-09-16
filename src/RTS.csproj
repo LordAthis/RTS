@@ -48,4 +48,30 @@
          Gemini-vel generalt "repulo boritek + LOG felirat" grafika). -->
     <Resource Include="Assets\mail_diagmailer.png" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Verzio v2.0.0 - 2026-09-16 (round17): a hardver-lekerdezo
+         PowerShell-scriptek BE VANNAK EGETVE az exe-be, ugyanazon elv
+         alapjan, mint fentebb az RTS-info.json / donate.json.
+
+         MIERT: ha a scriptek csak kulso fajlkent lennenek jelen, egy
+         hianyzo, felulirt vagy elavult fajl eseten a lekerdezes csendben
+         elhasalna - pontosan azt a hibafajtat hoznank vissza, amit a
+         round17 meg akar szuntetni. Igy MINDEN build magaval viszi a
+         sajat, hozza tartozo script-verziot.
+
+         A HwScriptRunner indulaskor kiirja oket a
+         <InstallRoot>\data\Scripts\Hw\ mappaba, ahol a felhasznalo
+         meg tudja nyitni es el tudja olvasni oket (LordAthis kifejezett
+         kerese volt, hogy a lekerdezesek kulon, LATHATO .ps1 fajlok
+         legyenek) - a tartalmuk viszont mindig az exe-vel egyezik. -->
+    <EmbeddedResource Include="Scripts\Hw\Get-HardwareReport.ps1" LogicalName="RTS.EmbeddedResources.Hw.Get-HardwareReport.ps1" />
+    <EmbeddedResource Include="Scripts\Hw\Get-SystemInfo.ps1"    LogicalName="RTS.EmbeddedResources.Hw.Get-SystemInfo.ps1" />
+    <EmbeddedResource Include="Scripts\Hw\Get-CpuInfo.ps1"       LogicalName="RTS.EmbeddedResources.Hw.Get-CpuInfo.ps1" />
+    <EmbeddedResource Include="Scripts\Hw\Get-GpuInfo.ps1"       LogicalName="RTS.EmbeddedResources.Hw.Get-GpuInfo.ps1" />
+    <EmbeddedResource Include="Scripts\Hw\Get-DiskInfo.ps1"      LogicalName="RTS.EmbeddedResources.Hw.Get-DiskInfo.ps1" />
+    <EmbeddedResource Include="Scripts\Hw\Get-SensorInfo.ps1"    LogicalName="RTS.EmbeddedResources.Hw.Get-SensorInfo.ps1" />
+    <EmbeddedResource Include="Scripts\Hw\Get-DxDiagInfo.ps1"    LogicalName="RTS.EmbeddedResources.Hw.Get-DxDiagInfo.ps1" />
+    <EmbeddedResource Include="Scripts\Hw\Ensure-Tool.ps1"       LogicalName="RTS.EmbeddedResources.Hw.Ensure-Tool.ps1" />
+  </ItemGroup>
+
 </Project>
